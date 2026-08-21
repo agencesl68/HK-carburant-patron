@@ -216,7 +216,23 @@
     .rank li.clickable { cursor: pointer; }
 
     /* ============ TABLEAU ============ */
-    .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .tbl-scroll::-webkit-scrollbar { display: none; }
+    /* le dégradé signale qu'il reste des colonnes ; il s'efface en fin de course */
+    .tbl-wrap { position: relative; }
+    .tbl-wrap::after {
+      content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 38px;
+      pointer-events: none; border-radius: 0 15px 15px 0;
+      background: linear-gradient(90deg, rgba(255,255,255,0), #fff 75%);
+      opacity: 0; transition: opacity .22s ease;
+    }
+    .tbl-wrap.deborde::after { opacity: 1; }
+    .tbl-wrap.deborde.fin::after { opacity: 0; }
+    .sect-hint {
+      float: right; font-size: 10.5px; font-weight: 700; letter-spacing: .04em;
+      color: var(--orange-d); background: var(--orange-l);
+      padding: 3px 8px; border-radius: 999px; text-transform: none;
+    }
     table.data { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 460px; }
     table.data th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 10px 9px; border-bottom: 2px solid var(--line); white-space: nowrap; font-weight: 800; }
     table.data td { padding: 10px 9px; border-bottom: 1px solid var(--line); white-space: nowrap; }
@@ -238,10 +254,9 @@
     .hist .h-line1 { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
     .hist .h-name { font-size: 14px; font-weight: 800; }
     .hist .h-val { font-size: 14px; font-weight: 800; white-space: nowrap; }
-    .hist .h-line2 { font-size: 11.5px; color: var(--muted); margin-top: 3px; display: flex; gap: 9px;
-      flex-wrap: nowrap; overflow: hidden; white-space: nowrap; }
+    .hist .h-line2 { font-size: 11.5px; color: var(--muted); margin-top: 3px; display: flex;
+      column-gap: 9px; row-gap: 2px; flex-wrap: wrap; }
     .hist .h-line2 > span { flex: 0 0 auto; }
-    .hist .h-line2 > span:nth-child(2) { flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     .hist .h-line2 b { color: var(--text); font-weight: 600; }
 
     .empty { text-align: center; color: var(--muted); font-size: 13.5px; padding: 26px 10px; line-height: 1.55; }
@@ -352,6 +367,20 @@
       font-family: inherit; z-index: 5; margin: -4px -4px 0 0; }
     .sheet-title { font-size: 19px; font-weight: 800; margin-bottom: 3px; }
     .sheet-sub { font-size: 12.5px; color: var(--muted); margin-bottom: 16px; }
+
+    @media (max-width: 359px) {
+      /* deux champs côte à côte ne tiennent plus : la date se faisait rogner
+         (« 21/08/202 » + icône calendrier par-dessus) */
+      .row { flex-direction: column; gap: 0; }
+      .row .field { width: 100%; }
+      .periods button { font-size: 11.5px; padding: 10px 2px; }
+      .kpi .val { font-size: 22px; }
+      .kpi .lbl { font-size: 10.5px; letter-spacing: 0; }
+      .wrap { padding-left: 11px; padding-right: 11px; }
+      .tank-vis { flex: 0 0 66px; height: 104px; }
+      .tank-info .big { font-size: 26px; }
+      nav.tabbar button { font-size: 9.5px; }
+    }
 
     .toast {
       position: fixed; left: 50%; bottom: calc(var(--nav-h) + 18px);
@@ -522,7 +551,7 @@
     <div class="periods" id="triCamions" style="margin-top:8px">
       <button data-t="litres" class="active">Litres</button>
       <button data-t="montant">Co&ucirc;t</button>
-      <button data-t="conso">L/100km</button>
+      <button data-t="conso">Conso</button>
       <button data-t="km">Km</button>
       <button data-t="pleins">Pleins</button>
     </div>
@@ -531,13 +560,13 @@
     <div class="card" id="camionsRank"></div>
 
     <h2 class="sect">Tableau détaillé</h2>
-    <div class="card pad0"><div class="tbl-scroll"><table class="data" id="camionsTable"></table></div></div>
+    <div class="card pad0 tbl-wrap"><div class="tbl-scroll"><table class="data" id="camionsTable"></table></div></div>
 
     <h2 class="sect">Consommation par chauffeur</h2>
-    <div class="card pad0"><div class="tbl-scroll"><table class="data" id="chauffeursTable"></table></div></div>
+    <div class="card pad0 tbl-wrap"><div class="tbl-scroll"><table class="data" id="chauffeursTable"></table></div></div>
 
     <h2 class="sect">Par type de carburant</h2>
-    <div class="card pad0"><div class="tbl-scroll"><table class="data" id="carbTable"></table></div></div>
+    <div class="card pad0 tbl-wrap"><div class="tbl-scroll"><table class="data" id="carbTable"></table></div></div>
   </section>
 
   <!-- ══════════════ VUE : SAISIE ══════════════ -->
@@ -1189,7 +1218,39 @@ function render(){
   renderCuve();
   renderCamions();
   renderHisto();
+  majTableaux();
 }
+
+/* Sur un téléphone, un tableau de 10 colonnes ne tient pas : on signale
+   explicitement qu'il reste des colonnes à droite, sinon on croit
+   que l'affichage est tronqué. */
+function majTableaux(){
+  document.querySelectorAll('.tbl-wrap').forEach(function(wrap){
+    var sc = wrap.querySelector('.tbl-scroll');
+    if (!sc || !sc.clientWidth) return;   /* onglet masqué : largeurs à 0, on n'y touche pas */
+    var deborde = sc.scrollWidth > sc.clientWidth + 4;
+    wrap.classList.toggle('deborde', deborde);
+    wrap.classList.toggle('fin', sc.scrollLeft + sc.clientWidth >= sc.scrollWidth - 4);
+    if (!sc.dataset.branche) {
+      sc.dataset.branche = '1';
+      sc.addEventListener('scroll', function(){
+        wrap.classList.toggle('fin', sc.scrollLeft + sc.clientWidth >= sc.scrollWidth - 4);
+      }, { passive: true });
+    }
+    /* mention « glisser » dans le titre de section juste au-dessus */
+    var titre = wrap.previousElementSibling;
+    if (titre && titre.classList && titre.classList.contains('sect')) {
+      var h = titre.querySelector('.sect-hint');
+      if (deborde && !h) {
+        h = document.createElement('span');
+        h.className = 'sect-hint';
+        h.textContent = 'glisser →';
+        titre.appendChild(h);
+      } else if (!deborde && h) { h.remove(); }
+    }
+  });
+}
+window.addEventListener('resize', majTableaux);
 
 function renderSync(){
   var el = document.getElementById('sync');
@@ -1270,7 +1331,7 @@ function htmlTank(bc){
   if (cap > 0 && bc.niveau > cap * 1.02) {
     alerte = '<div class="tank-alert warn">Le reste calcul&eacute; (' + fmt(bc.niveau) + ' L) d&eacute;passe la capacit&eacute; d&eacute;clar&eacute;e (' + fmt(cap) + ' L). Corrige la capacit&eacute; dans R&eacute;glages, onglet Saisie.</div>';
   } else if (bc.niveau < 0) {
-    alerte = '<div class="tank-alert err">Il est sorti ' + fmt(Math.abs(bc.niveau)) + ' L de plus qu\'il n\'est entré. Soit la cuve contenait déjà du carburant au départ (à saisir dans R&eacute;glages), soit un remplissage n\'a pas été enregistré.</div>';
+    alerte = '';   /* pas de message : le patron connaît déjà l'écart, il le corrigera lui-même */
   } else if (bc.niveau <= CFG.SEUIL_CUVE) {
     alerte = '<div class="tank-alert err">Niveau bas — il reste ' + fmt(bc.niveau) + ' L. Prévoir une livraison.</div>';
   } else if (bc.autonomie !== null && bc.autonomie < 14) {
@@ -1328,9 +1389,7 @@ function htmlRank(cams, tri){
 
 function htmlAlertes(pl, cams, bc){
   var a = [];
-  if (bc.niveau < 0)
-    a.push({ n:"err", t:"<b>Il est sorti " + fmt(Math.abs(bc.niveau)) + " L de plus qu'il n'est entré en cuve.</b> Soit la cuve contenait déjà du carburant au 22/06 (à saisir dans Réglages, onglet Saisie), soit un remplissage n'a pas été enregistré." });
-  else if (bc.niveau <= CFG.SEUIL_CUVE)
+  if (bc.niveau >= 0 && bc.niveau <= CFG.SEUIL_CUVE)
     a.push({ n:"err", t:"<b>Cuve bientôt vide : " + fmt(bc.niveau) + " L restants.</b> Commander une livraison." });
 
   var avecConso = cams.filter(function(c){ return c.consoFiable; });
@@ -1518,7 +1577,7 @@ function ouvrirCamion(immat){
       '<div class="kpi"><div class="lbl">Coût au km</div><div class="val">' + uval(c.coutKm ? fmt(c.coutKm/100, 2) : null, '€/km') + '</div><div class="sub">moyenne ' + fmt(c.moyenne,0) + ' L/plein</div></div>' +
     '</div>' +
     '<h2 class="sect">Litres par mois</h2><div class="card">' + svgBarres(mm) + '</div>' +
-    (segs.length ? '<h2 class="sect">Consommation plein à plein</h2><div class="card pad0"><div class="tbl-scroll"><table class="data"><thead><tr><th>Date</th><th class="num">Distance</th><th class="num">Litres</th><th class="num">L/100km</th></tr></thead><tbody>' +
+    (segs.length ? '<h2 class="sect">Consommation plein à plein</h2><div class="card pad0 tbl-wrap"><div class="tbl-scroll"><table class="data"><thead><tr><th>Date</th><th class="num">Distance</th><th class="num">Litres</th><th class="num">L/100km</th></tr></thead><tbody>' +
       segs.slice().reverse().map(function(s){
         var faux = s.conso < CONSO_MIN || s.conso > CONSO_MAX;
         return '<tr' + (faux ? ' style="color:#dc2626"' : '') + '><td>' + frDate(s.date) + '</td><td class="num">' + fmt(s.dist) + ' km</td><td class="num">' + fmt(s.litres,1) + '</td><td class="num strong">' + fmt(s.conso,1) + (faux ? ' ⚠' : '') + '</td></tr>';
@@ -1531,6 +1590,7 @@ function ouvrirCamion(immat){
           (p.montant ? '<span><b>' + fmtE(p.montant,2) + '</b></span>' : '') + '<span>' + esc(p.type) + '</span></div></div></li>';
       }).join('') + '</ul></div>';
   document.getElementById('sheet').classList.add('show');
+  majTableaux();
 }
 document.getElementById('sheet').addEventListener('click', function(e){
   if (e.target.hasAttribute('data-close')) this.classList.remove('show');
@@ -1822,6 +1882,7 @@ document.querySelectorAll('nav.tabbar button').forEach(function(b){
     document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
     document.getElementById('view-' + b.dataset.view).classList.add('active');
     window.scrollTo(0, 0);
+    majTableaux();
   });
 });
 document.getElementById('periods').addEventListener('click', function(e){
@@ -1832,12 +1893,12 @@ document.getElementById('periods').addEventListener('click', function(e){
 document.getElementById('periods2').addEventListener('click', function(e){
   var b = e.target.closest('button'); if (!b) return;
   this.querySelectorAll('button').forEach(function(x){ x.classList.remove('active'); });
-  b.classList.add('active'); STATE.periodeCam = b.dataset.p; renderCamions();
+  b.classList.add('active'); STATE.periodeCam = b.dataset.p; renderCamions(); majTableaux();
 });
 document.getElementById('triCamions').addEventListener('click', function(e){
   var b = e.target.closest('button'); if (!b) return;
   this.querySelectorAll('button').forEach(function(x){ x.classList.remove('active'); });
-  b.classList.add('active'); STATE.tri = b.dataset.t; renderCamions();
+  b.classList.add('active'); STATE.tri = b.dataset.t; renderCamions(); majTableaux();
 });
 
 /* ═══════════ RÉGLAGES ═══════════ */
