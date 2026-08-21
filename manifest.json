@@ -1,0 +1,14 @@
+{
+  "name": "HK Terrassement — Direction carburant",
+  "short_name": "HK Direction",
+  "description": "Suivi de la consommation carburant et de la cuve — HK Terrassement",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#ff6e00",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

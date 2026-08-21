@@ -1,0 +1,1862 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <title>HK Terrassement — Direction carburant</title>
+  <style>
+    :root {
+      --ink: #1b1b1d;
+      --paper: #f4f5f7;
+      --card: #ffffff;
+      --orange: #ff6e00;
+      --orange-d: #d65d00;
+      --orange-l: #fff2e6;
+      --line: #e3e6ea;
+      --muted: #6b7280;
+      --text: #15161a;
+      --ok: #16a34a;
+      --ok-l: #eafaf0;
+      --err: #dc2626;
+      --err-l: #fdecec;
+      --warn: #b45309;
+      --warn-l: #fff7e6;
+      --blue: #2563eb;
+      --nav-h: 62px;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    button { transition: transform .12s ease, background .18s ease, color .18s ease, box-shadow .18s ease; }
+    button:active { transform: scale(.97); }
+    .card { transition: box-shadow .2s ease; }
+    /* respecte le réglage « réduire les animations » du téléphone */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+      html { scroll-behavior: auto; }
+    }
+    body {
+      font-family: 'Barlow', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: var(--paper);
+      min-height: 100vh;
+      color: var(--text);
+      overflow-x: hidden;
+      padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom));
+    }
+
+    /* ============ VERROU ============ */
+    .lock { position: fixed; inset: 0; z-index: 300; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
+    .lock.hidden { display: none; }
+    .lock-logo { height: 60px; width: auto; margin-bottom: 18px; }
+    .lock-badge { display: inline-block; background: var(--ink); color: #fff; font-size: 10.5px; font-weight: 800; letter-spacing: .16em; padding: 5px 11px; border-radius: 999px; margin-bottom: 16px; }
+    .lock-title { font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 5px; }
+    .lock-sub { font-size: 13px; color: var(--muted); margin-bottom: 22px; }
+    .lock-dots { display: flex; gap: 16px; margin-bottom: 12px; }
+    .lock-dots span { width: 15px; height: 15px; border-radius: 50%; border: 2px solid var(--orange); background: #fff; }
+    .lock-dots span.on { background: var(--orange); }
+    .lock-err { min-height: 18px; font-size: 13px; font-weight: 700; color: var(--err); margin-bottom: 14px; }
+    .lock.shake .lock-dots { animation: lockShake .42s; }
+    @keyframes lockShake { 0%,100%{transform:translateX(0);} 20%,60%{transform:translateX(-9px);} 40%,80%{transform:translateX(9px);} }
+    .lock-pad { display: grid; grid-template-columns: repeat(3, 74px); gap: 14px; }
+    .lock-pad button { height: 74px; border-radius: 50%; border: none; background: var(--paper); color: var(--text); font-size: 26px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .lock-pad button:active { background: var(--orange-l); }
+    .lock-pad button[data-k="del"] { background: transparent; color: var(--orange); }
+    .lock-pad .lock-empty { visibility: hidden; }
+
+    /* ============ EN-TÊTE ============ */
+    header {
+      background: #fff; border-bottom: 4px solid var(--orange);
+      padding: 11px 14px 9px;
+      position: sticky; top: 0; z-index: 40;
+    }
+    .hrow { display: flex; align-items: center; gap: 12px; }
+    header .logo { height: 40px; width: auto; }
+    header .htxt { flex: 1; min-width: 0; }
+    header .htitle { font-size: 15px; font-weight: 800; line-height: 1.1; }
+    header .hbadge { display: inline-block; background: var(--ink); color: #fff; font-size: 9.5px; font-weight: 800; letter-spacing: .14em; padding: 3px 8px; border-radius: 999px; margin-top: 3px; }
+    .refresh {
+      border: none; background: var(--orange-l); color: var(--orange-d);
+      width: 42px; height: 42px; border-radius: 12px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+    }
+    .refresh svg { width: 20px; height: 20px; }
+    .refresh.spin svg { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .sync { font-size: 11px; color: var(--muted); text-align: center; padding-top: 8px; margin-top: 8px; border-top: 1px solid var(--line); }
+    .sync:empty { display: none; }
+    .sync b { color: var(--text); }
+    .sync.err { color: var(--err); }
+
+    /* ============ STRUCTURE ============ */
+    .wrap { max-width: 560px; margin: 0 auto; padding: 12px 14px 24px; }
+    .view { display: none; }
+    .view.active { display: block; animation: vueEntre .3s cubic-bezier(.22,.9,.3,1) both; }
+    @keyframes vueEntre { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    /* apparition en cascade des blocs du tableau de bord */
+    .stagger > * { animation: monte .34s cubic-bezier(.22,.9,.3,1) both; }
+    .stagger > *:nth-child(1) { animation-delay: 0ms; }
+    .stagger > *:nth-child(2) { animation-delay: 40ms; }
+    .stagger > *:nth-child(3) { animation-delay: 80ms; }
+    .stagger > *:nth-child(4) { animation-delay: 110ms; }
+    .stagger > *:nth-child(5) { animation-delay: 135ms; }
+    .stagger > *:nth-child(6) { animation-delay: 155ms; }
+    .stagger > *:nth-child(n+7) { animation-delay: 170ms; }
+    @keyframes monte { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+    /* barres du classement : elles poussent depuis la gauche */
+    @keyframes pousse { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    /* barres du graphique : elles montent depuis le bas */
+    @keyframes grandit { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+    h2.sect { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 22px 0 9px; }
+    h2.sect:first-child { margin-top: 6px; }
+
+    .card { background: var(--card); border-radius: 15px; padding: 15px; box-shadow: 0 1px 3px rgba(15,15,16,.09); margin-bottom: 11px; }
+    .card.pad0 { padding: 0; overflow: hidden; }
+
+    /* ============ FILTRE PÉRIODE ============ */
+    .periods { display: flex; gap: 5px; padding: 2px 0 4px; }
+    .periods button {
+      flex: 1 1 0; min-width: 0; padding: 10px 4px; border: none; border-radius: 10px;
+      background: #fff; color: var(--muted); font-family: inherit;
+      font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
+      box-shadow: 0 1px 3px rgba(15,15,16,.09);
+      transition: background .18s ease, color .18s ease, transform .12s ease;
+    }
+    .periods button.active { background: var(--ink); color: #fff; }
+    .periods button:active { transform: scale(.95); }
+
+    /* ============ KPI ============ */
+    .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .kpi { background: var(--card); border-radius: 15px; padding: 14px; box-shadow: 0 1px 3px rgba(15,15,16,.09);
+      display: flex; flex-direction: column; min-height: 104px; }
+    .kpi .lbl { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .kpi .val { font-size: 25px; font-weight: 800; line-height: 1.12; margin-top: 5px; letter-spacing: -.02em; }
+    .kpi .val small { font-size: 14px; font-weight: 700; color: var(--muted); margin-left: 5px; letter-spacing: 0; }
+    .kpi .sub { font-size: 11.5px; color: var(--muted); margin-top: auto; padding-top: 4px; }
+    .kpi.accent { background: var(--orange); }
+    .kpi.accent .lbl, .kpi.accent .sub { color: rgba(255,255,255,.85); }
+    .kpi.accent .val { color: #fff; }
+    .kpi.accent .val small { color: rgba(255,255,255,.8); }
+    .kpi.dark { background: var(--ink); }
+    .kpi.dark .lbl, .kpi.dark .sub { color: rgba(255,255,255,.65); }
+    .kpi.dark .val { color: #fff; }
+    .kpi.dark .val small { color: rgba(255,255,255,.6); }
+    .delta { font-size: 11px; font-weight: 700; margin-top: auto; padding-top: 4px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .delta.up { color: var(--err); }
+    .delta.down { color: var(--ok); }
+    .delta.flat { color: var(--muted); }
+    /* sur fond orange ou noir, le vert/rouge saturé devient illisible */
+    .kpi.accent .delta.up, .kpi.dark .delta.up { color: #ffc9c9; }
+    .kpi.accent .delta.down, .kpi.dark .delta.down { color: #b7f7cd; }
+    .kpi.accent .delta.flat, .kpi.dark .delta.flat { color: rgba(255,255,255,.7); }
+
+    /* ============ JAUGE CUVE ============ */
+    .tank { display: flex; gap: 15px; align-items: center; }
+    .tank-vis { flex: 0 0 78px; height: 118px; border-radius: 12px; border: 3px solid var(--ink); position: relative; overflow: hidden; background: #fff; }
+    .tank-fill { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, #ff8c33, var(--orange)); transition: height .6s cubic-bezier(.4,0,.2,1); }
+    .tank-fill.low { background: linear-gradient(180deg, #f87171, #dc2626); }
+    .tank-fill.mid { background: linear-gradient(180deg, #fbbf24, #f59e0b); }
+    .tank-vis.vide { border-color: var(--err); background: repeating-linear-gradient(45deg, #fff, #fff 7px, var(--err-l) 7px, var(--err-l) 14px); }
+    .tank-vis.vide .tank-pct { color: var(--err); font-size: 26px; }
+    .tank-pct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 19px; font-weight: 800; color: var(--ink); text-shadow: 0 1px 3px rgba(255,255,255,.9); }
+    .tank-info { flex: 1; min-width: 0; }
+    .tank-info .big { font-size: 30px; font-weight: 800; line-height: 1; letter-spacing: -.02em; }
+    .tank-info .big.neg { color: var(--err); }
+    .tank-info .big small { font-size: 15px; color: var(--muted); font-weight: 700; margin-left: 4px; }
+    .tank-info .lbl { font-size: 11.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+    .tank-lines { margin-top: 11px; font-size: 12.5px; color: var(--muted); line-height: 1.75; }
+    .tank-lines b { color: var(--text); font-weight: 700; }
+    .tank-alert { margin-top: 11px; font-size: 12.5px; font-weight: 600; line-height: 1.45; padding: 10px 12px; border-radius: 10px; }
+    .tank-alert b { font-weight: 800; }
+    .tank-alert.ok { background: var(--ok-l); color: #15803d; }
+    .tank-alert.warn { background: var(--warn-l); color: var(--warn); }
+    .tank-alert.err { background: var(--err-l); color: var(--err); }
+
+    /* ============ GRAPHIQUES ============ */
+    .chart-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; gap: 8px; }
+    .chart-title { font-size: 14.5px; font-weight: 800; }
+    .chart-note { font-size: 11px; color: var(--muted); }
+    .legend { display: flex; gap: 13px; flex-wrap: wrap; margin-top: 11px; font-size: 11.5px; color: var(--muted); font-weight: 600; }
+    .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 5px; vertical-align: -1px; }
+    svg.chart { width: 100%; display: block; overflow: visible; }
+    svg.chart text { font-family: 'Barlow', sans-serif; }
+    svg.chart rect.b { transform-origin: center bottom; animation: grandit .5s cubic-bezier(.22,.9,.3,1) both; }
+    svg.chart text.v { animation: monte .45s ease .18s both; }
+
+    /* ============ BARRES CLASSEMENT ============ */
+    .rank { list-style: none; margin: 0; padding: 0; }
+    .rank li { padding: 11px 0; border-bottom: 1px solid var(--line); }
+    .rank li:last-child { border-bottom: none; }
+    .rank .r-top { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+    .rank .r-pos { font-size: 11px; font-weight: 800; color: #fff; background: var(--muted); width: 19px; height: 19px; border-radius: 5px; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; align-self: center; }
+    .rank li:nth-child(1) .r-pos { background: var(--orange); }
+    .rank li:nth-child(2) .r-pos { background: var(--ink); }
+    .rank .r-name { font-size: 14.5px; font-weight: 800; flex: 1; min-width: 0; letter-spacing: .01em; }
+    .rank .r-val { font-size: 14.5px; font-weight: 800; white-space: nowrap; }
+    .rank .r-val small { font-size: 11.5px; color: var(--muted); font-weight: 700; margin-left: 3px; }
+    .rank .r-bar { height: 7px; border-radius: 4px; background: var(--line); overflow: hidden; }
+    .rank .r-bar i { display: block; height: 100%; background: var(--orange); border-radius: 4px;
+      transform-origin: left center; animation: pousse .55s cubic-bezier(.22,.9,.3,1) both; }
+    .rank li:active { background: #fafbfc; }
+    .rank .r-sub { font-size: 11.5px; color: var(--muted); margin-top: 5px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .rank .r-sub b { color: var(--text); font-weight: 700; }
+    .rank li.clickable { cursor: pointer; }
+
+    /* ============ TABLEAU ============ */
+    .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table.data { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 460px; }
+    table.data th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 10px 9px; border-bottom: 2px solid var(--line); white-space: nowrap; font-weight: 800; }
+    table.data td { padding: 10px 9px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    table.data tr:last-child td { border-bottom: none; }
+    table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    table.data td.strong { font-weight: 700; }
+    table.data tbody tr:active { background: var(--orange-l); }
+
+    /* ============ LISTE HISTORIQUE ============ */
+    .hist { list-style: none; margin: 0; padding: 0; }
+    .hist li { display: flex; gap: 11px; padding: 12px 0; border-bottom: 1px solid var(--line); align-items: flex-start; }
+    .hist li:last-child { border-bottom: none; }
+    .hist .h-ico { flex: 0 0 38px; height: 38px; border-radius: 11px; display: flex; align-items: center; justify-content: center; }
+    .hist .h-ico svg { width: 19px; height: 19px; }
+    .hist .h-ico.station { background: var(--orange-l); color: var(--orange-d); }
+    .hist .h-ico.cuve { background: #eef2ff; color: var(--blue); }
+    .hist .h-ico.remp { background: var(--ok-l); color: #15803d; }
+    .hist .h-body { flex: 1; min-width: 0; }
+    .hist .h-line1 { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+    .hist .h-name { font-size: 14px; font-weight: 800; }
+    .hist .h-val { font-size: 14px; font-weight: 800; white-space: nowrap; }
+    .hist .h-line2 { font-size: 11.5px; color: var(--muted); margin-top: 3px; display: flex; gap: 9px;
+      flex-wrap: nowrap; overflow: hidden; white-space: nowrap; }
+    .hist .h-line2 > span { flex: 0 0 auto; }
+    .hist .h-line2 > span:nth-child(2) { flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+    .hist .h-line2 b { color: var(--text); font-weight: 600; }
+
+    .empty { text-align: center; color: var(--muted); font-size: 13.5px; padding: 26px 10px; line-height: 1.55; }
+    .empty b { display: block; color: var(--text); font-size: 15px; margin-bottom: 4px; }
+
+    /* ============ ALERTES ============ */
+    .alerts { list-style: none; margin: 0; padding: 0; }
+    .alerts li { display: flex; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 13px; line-height: 1.45; }
+    .alerts li:last-child { border-bottom: none; }
+    .alerts .a-dot { flex: 0 0 8px; height: 8px; border-radius: 50%; margin-top: 6px; }
+    .alerts .a-dot.err { background: var(--err); }
+    .alerts .a-dot.warn { background: #f59e0b; }
+    .alerts .a-dot.info { background: var(--blue); }
+    .alerts b { font-weight: 800; }
+
+    /* ============ FORMULAIRE ============ */
+    .field { margin-bottom: 14px; }
+    .row { display: flex; gap: 10px; }
+    .row .field { flex: 1; min-width: 0; }
+    label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+    label .req { color: var(--orange); }
+    input, select, textarea {
+      width: 100%; min-width: 0; max-width: 100%; font-size: 16px; line-height: 1.25;
+      border: none; border-radius: 12px; background: #fff; color: var(--text); outline: none;
+      box-shadow: 0 1px 3px rgba(15,15,16,.10); font-family: inherit;
+      -webkit-appearance: none; appearance: none;
+      transition: box-shadow .16s ease, transform .16s ease;
+    }
+    /* hauteur identique pour input, select et date — sinon la case Date dépasse */
+    input, select { height: 48px; padding: 0 14px; }
+    input[type="date"] { -webkit-appearance: none; }
+    input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+    textarea { resize: none; min-height: 58px; padding: 13px 14px; }
+    select { padding-right: 34px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ff6e00' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; background-size: 16px; }
+    input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 2px var(--orange); }
+    .row { align-items: flex-end; }
+    .row .field { display: flex; flex-direction: column; }
+    .row .field > label { flex: 0 0 auto; min-height: 19px; }
+    .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .combo { position: relative; }
+    .combo-chev { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--orange); display: flex; pointer-events: none; }
+    .combo-list { list-style: none; margin: 6px 0 0; padding: 6px; position: absolute; left: 0; right: 0; top: 100%; background: #fff; border-radius: 12px; box-shadow: 0 10px 28px rgba(15,15,16,.18); max-height: 240px; overflow-y: auto; z-index: 30; display: none; }
+    .combo-list.show { display: block; }
+    .combo-list li { padding: 12px; border-radius: 9px; cursor: pointer; font-size: 15px; }
+    .combo-list li.custom { color: var(--orange-d); background: var(--orange-l); font-weight: 700; }
+    .combo-list li.empty2 { color: var(--muted); font-size: 13px; cursor: default; }
+    .photo-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 16px; border: 2px dashed var(--orange); border-radius: 13px; background: var(--orange-l); color: var(--orange-d); font-size: 15px; font-weight: 700; cursor: pointer; }
+    .photo-btn svg { width: 22px; height: 22px; }
+    input[type="file"] { display: none; }
+    .preview { display: none; margin-top: 10px; position: relative; }
+    .preview img { width: 100%; border-radius: 12px; display: block; }
+    .preview .clear { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,.6); color: #fff; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 18px; cursor: pointer; }
+    button.submit {
+      width: 100%; padding: 16px; margin-top: 4px; font-size: 17px; font-weight: 800; color: #fff;
+      background: var(--orange); border: none; border-radius: 13px; cursor: pointer; font-family: inherit;
+      box-shadow: 0 4px 12px rgba(255,110,0,.35);
+    }
+    button.submit:active { background: var(--orange-d); }
+    button.submit:disabled { opacity: .55; }
+    button.ghost {
+      width: 100%; padding: 13px; font-size: 14px; font-weight: 700; color: var(--muted);
+      background: #fff; border: none; border-radius: 12px; cursor: pointer; font-family: inherit;
+      box-shadow: 0 1px 3px rgba(15,15,16,.09);
+    }
+    .mode { display: flex; gap: 8px; margin-bottom: 16px; }
+    .mode button { flex: 1; padding: 13px 6px; border: none; border-radius: 13px; background: #fff; font-size: 13px; font-weight: 800; color: var(--muted); cursor: pointer; line-height: 1.2; font-family: inherit; box-shadow: 0 1px 3px rgba(15,15,16,.10); }
+    .mode button small { display: block; font-size: 10.5px; font-weight: 500; margin-top: 3px; opacity: .8; }
+    .mode button.active[data-mode="station"] { background: var(--orange); color: #fff; }
+    .mode button.active[data-mode="entreprise"] { background: var(--ink); color: #fff; }
+    .station-only, .cuve-only { display: none; }
+    .pending { display: none; margin: 0 0 12px; background: var(--orange-l); border: 1px solid var(--orange); color: var(--orange-d); font-size: 12.5px; font-weight: 600; padding: 9px 12px; border-radius: 10px; }
+    .pending.show { display: block; }
+
+    /* ============ BARRE D'ONGLETS ============ */
+    nav.tabbar {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+      background: #fff; border-top: 1px solid var(--line);
+      display: flex; height: var(--nav-h);
+      padding-bottom: env(safe-area-inset-bottom);
+      box-shadow: 0 -2px 14px rgba(15,15,16,.06);
+    }
+    nav.tabbar button {
+      flex: 1; border: none; background: none; cursor: pointer; font-family: inherit;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+      font-size: 10.5px; font-weight: 700; color: var(--muted); padding: 0;
+    }
+    nav.tabbar button svg { width: 21px; height: 21px; }
+    nav.tabbar button.active { color: var(--orange); }
+    nav.tabbar button svg { transition: transform .22s cubic-bezier(.3,1.4,.5,1); }
+    nav.tabbar button.active svg { transform: translateY(-2px) scale(1.08); }
+    nav.tabbar button:active { transform: none; }
+    nav.tabbar button:active svg { transform: scale(.9); }
+
+    /* ============ FEUILLE MODALE ============ */
+    .sheet { position: fixed; inset: 0; z-index: 200; display: none; }
+    .sheet.show { display: block; }
+    .sheet-bg { position: absolute; inset: 0; background: rgba(15,15,16,.45); }
+    .sheet-body {
+      position: absolute; left: 0; right: 0; bottom: 0; background: var(--paper);
+      border-radius: 20px 20px 0 0; max-height: 88vh; overflow-y: auto;
+      padding: 8px 16px calc(26px + env(safe-area-inset-bottom));
+      animation: sheetUp .28s cubic-bezier(.3,0,.2,1);
+    }
+    @keyframes sheetUp { from { transform: translateY(100%); } }
+    .sheet-grab { width: 40px; height: 4px; border-radius: 3px; background: var(--line); margin: 8px auto 14px; }
+    .sheet-close { position: sticky; top: 0; float: right; border: none; background: var(--line); color: var(--text);
+      width: 34px; height: 34px; border-radius: 50%; font-size: 20px; line-height: 1; cursor: pointer;
+      font-family: inherit; z-index: 5; margin: -4px -4px 0 0; }
+    .sheet-title { font-size: 19px; font-weight: 800; margin-bottom: 3px; }
+    .sheet-sub { font-size: 12.5px; color: var(--muted); margin-bottom: 16px; }
+
+    .toast {
+      position: fixed; left: 50%; bottom: calc(var(--nav-h) + 18px);
+      transform: translateX(-50%) translateY(140px);
+      background: var(--ink); color: #fff; padding: 14px 22px; border-radius: 12px;
+      font-size: 15px; font-weight: 600; box-shadow: 0 8px 30px rgba(0,0,0,.3);
+      transition: transform .3s; z-index: 250; max-width: 90%; text-align: center;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.ok { background: var(--ok); }
+    .toast.err { background: var(--err); }
+    .toast.warn { background: var(--orange-d); }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ VERROU ══════════════ -->
+<div id="lock" class="lock">
+  <img src="logo.png" alt="HK Terrassement" class="lock-logo">
+  <div class="lock-badge">DIRECTION</div>
+  <div class="lock-title">Code d'accès</div>
+  <div class="lock-sub">Espace réservé à la direction</div>
+  <div class="lock-dots" id="lockDots"><span></span><span></span><span></span><span></span></div>
+  <div class="lock-err" id="lockErr"></div>
+  <div class="lock-pad" id="lockPad">
+    <button type="button" data-k="1">1</button>
+    <button type="button" data-k="2">2</button>
+    <button type="button" data-k="3">3</button>
+    <button type="button" data-k="4">4</button>
+    <button type="button" data-k="5">5</button>
+    <button type="button" data-k="6">6</button>
+    <button type="button" data-k="7">7</button>
+    <button type="button" data-k="8">8</button>
+    <button type="button" data-k="9">9</button>
+    <button type="button" class="lock-empty" disabled></button>
+    <button type="button" data-k="0">0</button>
+    <button type="button" data-k="del" aria-label="Effacer">&#9003;</button>
+  </div>
+</div>
+
+<!-- ══════════════ EN-TÊTE ══════════════ -->
+<header>
+  <div class="hrow">
+    <img src="logo.png" alt="HK Terrassement" class="logo">
+    <div class="htxt">
+      <div class="htitle">Suivi carburant</div>
+      <span class="hbadge">DIRECTION</span>
+    </div>
+    <button class="refresh" id="btnRefresh" aria-label="Actualiser">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+    </button>
+  </div>
+  <div class="sync" id="sync"></div>
+</header>
+
+<div class="wrap">
+
+  <!-- ══════════════ VUE : TABLEAU DE BORD ══════════════ -->
+  <section class="view active stagger" id="view-dash">
+    <div class="periods" id="periods">
+      <button data-p="30" class="active">30 j</button>
+      <button data-p="mois">Ce mois</button>
+      <button data-p="90">3 mois</button>
+      <button data-p="annee">Année</button>
+      <button data-p="all">Tout</button>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <h2 class="sect">Niveau de la cuve</h2>
+    <div class="card" id="tankCard"></div>
+
+    <h2 class="sect">Consommation par mois</h2>
+    <div class="card" id="chartMois"></div>
+
+    <h2 class="sect">Qui consomme le plus</h2>
+    <div class="card" id="topCamions"></div>
+
+    <h2 class="sect">Répartition</h2>
+    <div class="card" id="repartition"></div>
+
+    <h2 class="sect">Points de vigilance</h2>
+    <div class="card" id="alertes"></div>
+  </section>
+
+  <!-- ══════════════ VUE : CUVE ══════════════ -->
+  <section class="view stagger" id="view-cuve">
+    <div class="card" id="tankCard2"></div>
+
+    <div class="kpis" id="cuveKpis"></div>
+
+    <h2 class="sect">Entrées / sorties de cuve par mois</h2>
+    <div class="card" id="chartCuve"></div>
+
+    <h2 class="sect">Remplissages de la cuve</h2>
+    <div class="card" id="listRemp"></div>
+
+    <h2 class="sect">Enregistrer un remplissage</h2>
+    <div class="card">
+      <form id="formRemp">
+        <div class="row">
+          <div class="field">
+            <label>Date <span class="req">*</span></label>
+            <input type="date" name="date" required>
+          </div>
+          <div class="field">
+            <label>Litres livrés <span class="req">*</span></label>
+            <input type="text" name="litres" inputmode="decimal" placeholder="ex: 3000" required>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Prix / litre (&euro;)</label>
+            <input type="text" name="prix_litre" inputmode="decimal" placeholder="ex: 1,215">
+          </div>
+          <div class="field">
+            <label>Montant TTC (&euro;) <span class="req">*</span></label>
+            <input type="text" name="montant" inputmode="decimal" placeholder="ex: 3645,00" required>
+          </div>
+        </div>
+        <div class="hint" style="margin:-8px 0 14px">Renseigne deux valeurs sur trois, la troisi&egrave;me se calcule toute seule.</div>
+        <div class="row">
+          <div class="field">
+            <label>Fournisseur</label>
+            <div class="combo" id="fourCombo">
+              <input type="text" name="fournisseur" id="fourInput" autocomplete="off" placeholder="ex: Garage MULLER" style="padding-right:38px">
+              <span class="combo-chev"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></span>
+              <ul class="combo-list" id="fourList"></ul>
+            </div>
+          </div>
+          <div class="field">
+            <label>Carburant</label>
+            <select name="carburant">
+              <option value="GNR">GNR</option>
+              <option value="Gazole">Gazole</option>
+              <option value="AdBlue">AdBlue</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Photo du bon de livraison</label>
+          <label class="photo-btn" for="fileBL">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span class="cam-label">Prendre en photo</span>
+          </label>
+          <input type="file" id="fileBL" data-photo="bl" accept="image/*" capture="environment">
+          <div class="preview"><img alt="bon de livraison"><button type="button" class="clear">&times;</button></div>
+        </div>
+        <div class="field">
+          <label>Note</label>
+          <textarea name="note" placeholder="Remarque &eacute;ventuelle"></textarea>
+        </div>
+        <button type="submit" class="submit" id="btnRemp">Enregistrer le remplissage</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ══════════════ VUE : CAMIONS ══════════════ -->
+  <section class="view stagger" id="view-camions">
+    <div class="periods" id="periods2">
+      <button data-p="30">30 j</button>
+      <button data-p="mois">Ce mois</button>
+      <button data-p="90">3 mois</button>
+      <button data-p="annee">Année</button>
+      <button data-p="all" class="active">Tout</button>
+    </div>
+
+    <div class="periods" id="triCamions" style="margin-top:8px">
+      <button data-t="litres" class="active">Litres</button>
+      <button data-t="montant">Co&ucirc;t</button>
+      <button data-t="conso">L/100km</button>
+      <button data-t="km">Km</button>
+      <button data-t="pleins">Pleins</button>
+    </div>
+
+    <h2 class="sect">Classement de la flotte</h2>
+    <div class="card" id="camionsRank"></div>
+
+    <h2 class="sect">Tableau détaillé</h2>
+    <div class="card pad0"><div class="tbl-scroll"><table class="data" id="camionsTable"></table></div></div>
+
+    <h2 class="sect">Consommation par chauffeur</h2>
+    <div class="card pad0"><div class="tbl-scroll"><table class="data" id="chauffeursTable"></table></div></div>
+
+    <h2 class="sect">Par type de carburant</h2>
+    <div class="card pad0"><div class="tbl-scroll"><table class="data" id="carbTable"></table></div></div>
+  </section>
+
+  <!-- ══════════════ VUE : SAISIE ══════════════ -->
+  <section class="view" id="view-saisie">
+    <div class="pending" id="pending"></div>
+
+    <h2 class="sect">Derniers mouvements</h2>
+    <div class="card" id="histo"></div>
+
+    <h2 class="sect">Saisir un plein</h2>
+    <div class="card">
+      <form id="form">
+        <div class="mode">
+          <button type="button" class="active" data-mode="station" id="btnStation">Station externe<small>Ticket &agrave; payer</small></button>
+          <button type="button" data-mode="entreprise" id="btnEntreprise">Pompe entreprise<small>Cuve interne</small></button>
+        </div>
+        <input type="hidden" name="type_pompe" id="typePompe" value="Station externe">
+
+        <div class="field cuve-only">
+          <label>Photo compteur AVANT le plein</label>
+          <label class="photo-btn" for="fileAvant">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span class="cam-label">Photo du compteur (avant)</span>
+          </label>
+          <input type="file" id="fileAvant" data-photo="avant" accept="image/*" capture="environment">
+          <div class="preview"><img alt="compteur avant"><button type="button" class="clear">&times;</button></div>
+        </div>
+
+        <div class="field">
+          <label>Chauffeur <span class="req">*</span></label>
+          <input type="text" name="chauffeur" placeholder="Nom du chauffeur" required>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Immatriculation <span class="req">*</span></label>
+            <div class="combo" id="immatCombo">
+              <input type="text" name="immatriculation" id="immatInput" autocomplete="off" placeholder="AA-123-BB" style="text-transform:uppercase; padding-right:38px" required>
+              <span class="combo-chev"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></span>
+              <ul class="combo-list" id="immatList"></ul>
+            </div>
+          </div>
+          <div class="field">
+            <label>Date <span class="req">*</span></label>
+            <input type="date" name="date" required>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Kilom&eacute;trage compteur</label>
+          <input type="number" name="kilometrage" inputmode="numeric" placeholder="ex: 124500">
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Carburant <span class="req">*</span></label>
+            <select name="carburant" required>
+              <option value="Gazole">Gazole</option>
+              <option value="GNR">GNR</option>
+              <option value="SP95">SP95</option>
+              <option value="SP95-E10">SP95-E10</option>
+              <option value="SP98">SP98</option>
+              <option value="AdBlue">AdBlue</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Litres <span class="req">*</span></label>
+            <input type="text" name="litres" inputmode="decimal" placeholder="ex: 58,40" required>
+          </div>
+        </div>
+
+        <div class="row station-only">
+          <div class="field">
+            <label>Prix / litre (&euro;)</label>
+            <input type="text" name="prix_litre" inputmode="decimal" placeholder="ex: 1,789">
+          </div>
+          <div class="field">
+            <label>Montant TTC (&euro;) <span class="req">*</span></label>
+            <input type="text" name="montant" inputmode="decimal" placeholder="ex: 104,48" required>
+          </div>
+        </div>
+
+        <div class="field station-only">
+          <label>Paiement</label>
+          <select name="paiement">
+            <option value="Carte carburant">Carte carburant</option>
+            <option value="CB entreprise">CB entreprise</option>
+            <option value="Garage MULLER">Garage MULLER</option>
+            <option value="Autre">Autre</option>
+          </select>
+        </div>
+
+        <div class="field station-only">
+          <label>Photo du ticket</label>
+          <label class="photo-btn" for="fileTicket">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span class="cam-label">Prendre en photo</span>
+          </label>
+          <input type="file" id="fileTicket" data-photo="ticket" accept="image/*" capture="environment">
+          <div class="preview"><img alt="ticket"><button type="button" class="clear">&times;</button></div>
+        </div>
+
+        <div class="field cuve-only">
+          <label>Photo compteur APR&Egrave;S le plein</label>
+          <label class="photo-btn" for="fileApres">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span class="cam-label">Photo du compteur (apr&egrave;s)</span>
+          </label>
+          <input type="file" id="fileApres" data-photo="apres" accept="image/*" capture="environment">
+          <div class="preview"><img alt="compteur apres"><button type="button" class="clear">&times;</button></div>
+        </div>
+
+        <div class="field station-only">
+          <label>Note</label>
+          <textarea name="note" placeholder="Remarque &eacute;ventuelle"></textarea>
+        </div>
+
+        <button type="submit" class="submit" id="submitBtn">Enregistrer le plein</button>
+      </form>
+    </div>
+
+    <h2 class="sect">Réglages</h2>
+    <div class="card">
+      <div class="field">
+        <label>Capacit&eacute; de la cuve (litres)</label>
+        <input type="number" id="capCuve" inputmode="numeric" placeholder="ex: 5000">
+        <div class="hint">Sert &agrave; calculer la jauge et l'alerte de niveau bas.</div>
+      </div>
+      <div class="field">
+        <label>Seuil d'alerte niveau bas (litres)</label>
+        <input type="number" id="seuilCuve" inputmode="numeric" placeholder="ex: 800">
+      </div>
+      <div class="field">
+        <label>Carburant d&eacute;j&agrave; en cuve avant le 1er remplissage (litres)</label>
+        <input type="number" id="stockInit" inputmode="numeric" placeholder="ex: 1500">
+        <div class="hint">&Agrave; renseigner si le reste en cuve affiche un niveau n&eacute;gatif.</div>
+      </div>
+      <button type="button" class="ghost" id="btnPurge">Vider le cache local et recharger</button>
+    </div>
+  </section>
+
+</div>
+
+<!-- ══════════════ ONGLETS ══════════════ -->
+<nav class="tabbar">
+  <button class="active" data-view="dash">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+    Tableau de bord
+  </button>
+  <button data-view="cuve">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M4 13h16"/><path d="M8 17h8"/></svg>
+    Cuve
+  </button>
+  <button data-view="camions">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 16V6a1 1 0 0 1 1-1h11v11"/><path d="M13 9h4l3 4v3"/><circle cx="6" cy="18" r="2"/><circle cx="17.5" cy="18" r="2"/></svg>
+    Camions
+  </button>
+  <button data-view="saisie">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+    Saisie
+  </button>
+</nav>
+
+<!-- ══════════════ FICHE CAMION ══════════════ -->
+<div class="sheet" id="sheet">
+  <div class="sheet-bg" data-close></div>
+  <div class="sheet-body">
+    <div class="sheet-grab"></div>
+    <button type="button" class="sheet-close" data-close aria-label="Fermer">&times;</button>
+    <div id="sheetContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   HK TERRASSEMENT — SUIVI CARBURANT / DIRECTION
+   Application patron. Lecture seule sur le Google Sheet
+   « HK - Carburant GO » + saisie des remplissages de cuve.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─────────── CONFIG (à éditer) ─────────── */
+var CFG = {
+  /* Webhook d'écriture (le même que l'app des chauffeurs) */
+  WEBHOOK_URL : "https://hook.eu1.make.com/u9h5sjaxlb6qidcf6esgo9gcfw3nbtei",
+  /* Webhook de lecture : scénario « HK Carburant - Données ».
+     Laisser vide tant qu'il n'est pas créé : l'app tourne alors
+     sur les données locales (remplissages initiaux + file d'attente). */
+  DATA_URL    : "https://hook.eu1.make.com/lax4qnkwsi5519pdxn894xwv95jroqkh",
+  APP_TOKEN   : "HK-CHANGE-MOI-2026",
+  CODE        : "2580",
+  CAP_CUVE    : 5000,   /* litres — modifiable dans Réglages */
+  SEUIL_CUVE  : 800,    /* litres — alerte niveau bas */
+  STOCK_INIT  : 0       /* litres déjà en cuve avant le 1er remplissage connu */
+};
+
+/* Remplissages de cuve connus avant la mise en service de l'app.
+   Total = 14 000 L. Ils sont ignorés si la même ligne (date + litres)
+   remonte du Google Sheet, pour ne jamais compter deux fois. */
+var REMPLISSAGES_INIT = [
+  { date:"2026-06-22", litres:4000, prix:null, montant:null, fournisseur:"", carburant:"GNR", note:"Report initial" },
+  { date:"2026-07-01", litres:3000, prix:null, montant:null, fournisseur:"", carburant:"GNR", note:"Report initial" },
+  { date:"2026-07-09", litres:3000, prix:null, montant:null, fournisseur:"", carburant:"GNR", note:"Report initial" },
+  { date:"2026-07-28", litres:2000, prix:null, montant:null, fournisseur:"", carburant:"GNR", note:"Report initial" },
+  { date:"2026-08-06", litres:2000, prix:null, montant:null, fournisseur:"", carburant:"GNR", note:"Report initial" }
+];
+
+var PLAQUES = ["GT-255-BA","HJ-605-DC","HJ-813-ZF","FZ-813-DT","FE-982-KB","GP-453-RT","FP-321-JZ","EZ-180-AN","HC-109-AX","GT-675-ZB","GY-969-AX","AJ-378-QB"];
+
+/* Bornes de plausibilité du prix au litre : au-delà, la ligne est
+   considérée comme une faute de saisie et son montant est écarté des totaux. */
+var PRIX_MIN = 0.50, PRIX_MAX = 4.00;
+/* Hors de ces bornes, la conso vient forcément d'un kilométrage mal saisi. */
+var CONSO_MIN = 5, CONSO_MAX = 120;
+var FOURNISSEURS = ["Garage MULLER","Comptoir Agricole","TOTAL","AVIA","Autre"];
+
+/* Icônes en SVG : cohérentes entre elles, contrairement aux emoji
+   qui changent de style d'un téléphone à l'autre. */
+var ICO = {
+  station: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>',
+  cuve   : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"/><path d="M13 9h3l3 3v6a2 2 0 0 1-4 0"/><path d="M2 21h13"/></svg>',
+  remp   : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v13"/><path d="M6 12l6 6 6-6"/></svg>'
+};
+
+var K_CACHE = "hk_patron_cache";
+var K_QUEUE = "hk_patron_queue";   /* clé distincte : les 2 apps partagent le domaine GitHub Pages, donc le même localStorage */
+var K_SET   = "hk_patron_settings";
+
+/* ═══════════ VERROU ═══════════ */
+(function () {
+  var lock = document.getElementById('lock'),
+      dots = document.getElementById('lockDots').children,
+      err  = document.getElementById('lockErr'), val = "";
+  function refresh(){ for (var i=0;i<4;i++) dots[i].classList.toggle('on', i<val.length); }
+  function check(){
+    if (val === CFG.CODE) { lock.classList.add('hidden'); }
+    else { err.textContent = "Code incorrect"; lock.classList.add('shake');
+           setTimeout(function(){ lock.classList.remove('shake'); val=""; refresh(); }, 450); }
+  }
+  document.getElementById('lockPad').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if (!b) return;
+    var k = b.getAttribute('data-k'); if (!k) return;
+    if (k === 'del') { val = val.slice(0,-1); err.textContent=""; refresh(); return; }
+    if (val.length >= 4) return;
+    val += k; err.textContent=""; refresh();
+    if (val.length === 4) setTimeout(check, 120);
+  });
+})();
+
+/* ═══════════ OUTILS ═══════════ */
+function num(v){
+  if (v === null || v === undefined || v === "") return null;
+  if (typeof v === "number") return isFinite(v) ? v : null;
+  var s = String(v).replace(/\s| |€/g, "").replace(",", ".");
+  var n = parseFloat(s);
+  return isFinite(n) ? n : null;
+}
+function pad(n){ return String(n).padStart(2,"0"); }
+function parseDate(v){
+  if (v === null || v === undefined || v === "") return null;
+  if (typeof v === "number" && v > 20000 && v < 80000) {           /* série Google Sheets */
+    var d = new Date(Date.UTC(1899,11,30) + v*86400000);
+    return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  }
+  var s = String(v).trim();
+  var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3]);
+  m = s.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4})/);
+  if (m) { var y = +m[3]; if (y < 100) y += 2000; return new Date(y, +m[2]-1, +m[1]); }
+  var d2 = new Date(s);
+  return isNaN(d2.getTime()) ? null : new Date(d2.getFullYear(), d2.getMonth(), d2.getDate());
+}
+function iso(d){ return d ? d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()) : ""; }
+function frDate(d){ return d ? pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear() : "—"; }
+function frCourt(d){ return d ? pad(d.getDate())+"/"+pad(d.getMonth()+1) : "—"; }
+var MOIS = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+function moisLabel(key){ var p = key.split("-"); return MOIS[+p[1]-1] + " " + p[0].slice(2); }
+function moisKey(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1); }
+
+function fmt(n, dec){
+  if (n === null || n === undefined || !isFinite(n)) return "—";
+  dec = dec === undefined ? 0 : dec;
+  return n.toLocaleString("fr-FR", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+function fmtL(n, dec){ return fmt(n, dec === undefined ? 0 : dec); }
+function fmtE(n, dec){ return n === null || !isFinite(n) ? "—" : fmt(n, dec === undefined ? 0 : dec) + " €"; }
+function esc(s){ return String(s === null || s === undefined ? "" : s).replace(/[&<>"]/g, function(c){
+  return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]; }); }
+function joursEntre(a, b){ return Math.round((b - a) / 86400000); }
+/* « 1 plein » / « 5 pleins » — évite les « pleins » disgracieux */
+function plur(n, sing, plu){ return n + " " + (Math.abs(n) >= 2 ? (plu || sing + "s") : sing); }
+/* Valeur + unité. Si la valeur manque, on n'affiche pas « — €/L » mais juste « — ». */
+function uval(v, unite){ return (v === null || v === "—") ? "—" : v + '<small>' + unite + '</small>'; }
+
+/* Les plaques sont saisies à la main : « HJ 813 ZF », « HJ- 813- ZF » et
+   « FP321JZ » doivent compter pour un seul et même camion. */
+function normImmat(v){
+  var s = String(v === null || v === undefined ? "" : v).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  var m = s.match(/^([A-Z]{2})(\d{3})([A-Z]{2})$/);
+  return m ? m[1] + "-" + m[2] + "-" + m[3] : s;
+}
+function immatDouteuse(v){ return !/^[A-Z]{2}-\d{3}-[A-Z]{2}$/.test(v); }
+
+function normChauffeur(v){
+  var s = String(v === null || v === undefined ? "" : v).trim().replace(/\s+/g, " ");
+  if (!s) return "—";
+  return s.split(" ").map(function(m){
+    return m.charAt(0).toUpperCase() + m.slice(1).toLowerCase();
+  }).join(" ");
+}
+
+function readSettings(){
+  try {
+    var s = JSON.parse(localStorage.getItem(K_SET) || "{}");
+    if (num(s.cap))    CFG.CAP_CUVE   = num(s.cap);
+    if (num(s.seuil) !== null) CFG.SEUIL_CUVE = num(s.seuil);
+    if (num(s.stock) !== null) CFG.STOCK_INIT = num(s.stock);
+  } catch (e) {}
+}
+function saveSettings(){
+  localStorage.setItem(K_SET, JSON.stringify({ cap: CFG.CAP_CUVE, seuil: CFG.SEUIL_CUVE, stock: CFG.STOCK_INIT }));
+}
+readSettings();
+
+/* ═══════════ ÉTAT ═══════════ */
+var STATE = { pleins: [], remplissages: [], periode: "30", periodeCam: "all", tri: "litres", maj: null, erreur: null };
+
+/* ═══════════ NORMALISATION DES DONNÉES ═══════════ */
+var COLS_PLEIN = ["type","date","envoye_le","chauffeur","immat","carburant","litres","km","prix","montant","paiement","note","lien_ticket","lien_avant","lien_apres"];
+var COLS_REMP  = ["date","envoye_le","fournisseur","carburant","litres","prix","montant","note","lien"];
+
+function rowToObj(row, cols){
+  if (row && !Array.isArray(row) && typeof row === "object") return row;
+  var o = {};
+  for (var i = 0; i < cols.length; i++) o[cols[i]] = (row && row[i] !== undefined) ? row[i] : "";
+  return o;
+}
+function looksLikeHeader(row, first){
+  var v = Array.isArray(row) ? row[0] : (row ? row[first] : "");
+  return /type|date/i.test(String(v || "")) && !parseDate(v);
+}
+
+function normPleins(rows){
+  var out = [];
+  (rows || []).forEach(function(row, idx){
+    if (idx === 0 && looksLikeHeader(row, "type")) return;
+    var o = rowToObj(row, COLS_PLEIN);
+    var d = parseDate(o.date);
+    var l = num(o.litres);
+    if (!d || !l) return;
+    var type = String(o.type || "").trim();
+    var mt = num(o.montant), px = num(o.prix);
+    /* Prix réel recalculé : c'est lui qui trahit les fautes de frappe. */
+    var reel = (mt && l) ? mt / l : null;
+    var suspect = (reel !== null && (reel > PRIX_MAX || reel < PRIX_MIN));
+    out.push({
+      type       : type || "Station externe",
+      cuve       : /pompe|entreprise|cuve/i.test(type),
+      date       : d,
+      chauffeur  : normChauffeur(o.chauffeur),
+      immat      : normImmat(o.immat) || "—",
+      immatBrute : String(o.immat || "").trim(),
+      carburant  : String(o.carburant || "").trim() || "—",
+      litres     : l,
+      km         : num(o.km),
+      prix       : suspect ? null : px,
+      montant    : suspect ? null : mt,
+      montantBrut: mt,
+      suspect    : suspect,
+      paiement   : String(o.paiement || "").trim(),
+      note       : String(o.note || "").trim()
+    });
+  });
+  return out.sort(function(a,b){ return b.date - a.date; });
+}
+
+function normRemplissages(rows){
+  var out = [];
+  (rows || []).forEach(function(row, idx){
+    if (idx === 0 && looksLikeHeader(row, "date")) return;
+    var o = rowToObj(row, COLS_REMP);
+    var d = parseDate(o.date);
+    var l = num(o.litres);
+    if (!d || !l) return;
+    out.push({
+      date        : d,
+      litres      : l,
+      prix        : num(o.prix),
+      montant     : num(o.montant),
+      fournisseur : String(o.fournisseur || "").trim(),
+      carburant   : String(o.carburant || "").trim() || "GNR",
+      note        : String(o.note || "").trim(),
+      src         : "sheet"
+    });
+  });
+  return out;
+}
+
+/* Fusionne les remplissages initiaux avec ceux du Sheet, sans doublon. */
+function mergeRemplissages(fromSheet){
+  var vus = {}, out = [];
+  fromSheet.forEach(function(r){ vus[iso(r.date)+"|"+Math.round(r.litres)] = 1; out.push(r); });
+  REMPLISSAGES_INIT.forEach(function(r){
+    var d = parseDate(r.date);
+    var k = iso(d)+"|"+Math.round(r.litres);
+    if (vus[k]) return;
+    out.push({ date:d, litres:r.litres, prix:r.prix, montant:r.montant,
+               fournisseur:r.fournisseur, carburant:r.carburant, note:r.note, src:"init" });
+  });
+  return out.sort(function(a,b){ return b.date - a.date; });
+}
+
+/* ═══════════ PÉRIODES ═══════════ */
+function bornes(p){
+  var now = new Date(), fin = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59), deb;
+  if (p === "all")        deb = new Date(2000,0,1);
+  else if (p === "mois")  deb = new Date(now.getFullYear(), now.getMonth(), 1);
+  else if (p === "annee") deb = new Date(now.getFullYear(), 0, 1);
+  else                    deb = new Date(fin.getTime() - (+p) * 86400000);
+  return { deb: deb, fin: fin };
+}
+function libPeriode(p){
+  return { "30":"30 derniers jours", "90":"3 derniers mois", "mois":"mois en cours",
+           "annee":"année en cours", "all":"depuis le début" }[p] || p;
+}
+function filtrer(list, p){
+  var b = bornes(p);
+  return list.filter(function(x){ return x.date >= b.deb && x.date <= b.fin; });
+}
+
+/* ═══════════ CALCULS ═══════════ */
+function totaux(pleins){
+  var t = { litres:0, montant:0, n:pleins.length, litresStation:0, litresCuve:0,
+            montantStation:0, nStation:0, nCuve:0, nSuspects:0 };
+  pleins.forEach(function(p){
+    if (p.suspect) t.nSuspects++;
+    t.litres  += p.litres;
+    t.montant += p.montant || 0;
+    if (p.cuve) { t.litresCuve += p.litres; t.nCuve++; }
+    else        { t.litresStation += p.litres; t.montantStation += p.montant || 0; t.nStation++; }
+  });
+  t.prixMoyen = t.litresStation > 0 ? t.montantStation / t.litresStation : null;
+  return t;
+}
+
+/* Consommation aux 100 km, méthode plein-à-plein :
+   distance = dernier km − premier km ; litres = tous les pleins sauf le premier. */
+function consoCamion(pleins){
+  var avecKm = pleins.filter(function(p){ return p.km && p.km > 0; })
+                     .sort(function(a,b){ return a.date - b.date || a.km - b.km; });
+  if (avecKm.length < 2) return { km:null, conso:null, litresRoules:null, anomalie:false };
+  var kms = avecKm.map(function(p){ return p.km; });
+  var anomalie = false;
+  for (var i = 1; i < kms.length; i++) if (kms[i] < kms[i-1]) anomalie = true;
+  var kmDeb = Math.min.apply(null, kms), kmFin = Math.max.apply(null, kms);
+  var dist = kmFin - kmDeb;
+  var litres = 0;
+  for (var j = 1; j < avecKm.length; j++) litres += avecKm[j].litres;
+  return {
+    km: dist > 0 ? dist : null,
+    litresRoules: litres,
+    conso: dist > 0 ? (litres / dist) * 100 : null,
+    anomalie: anomalie
+  };
+}
+
+function parCamion(pleins){
+  var map = {};
+  pleins.forEach(function(p){
+    var k = p.immat;
+    if (!map[k]) map[k] = { immat:k, litres:0, montant:0, n:0, pleins:[], chauffeurs:{}, dernier:null, litresCuve:0, litresStation:0 };
+    var c = map[k];
+    c.litres += p.litres;
+    c.montant += p.montant || 0;
+    c.n++;
+    c.pleins.push(p);
+    c.chauffeurs[p.chauffeur] = (c.chauffeurs[p.chauffeur] || 0) + p.litres;
+    if (p.cuve) c.litresCuve += p.litres; else c.litresStation += p.litres;
+    if (!c.dernier || p.date > c.dernier) c.dernier = p.date;
+  });
+  var arr = Object.keys(map).map(function(k){
+    var c = map[k], cc = consoCamion(c.pleins);
+    c.km = cc.km; c.conso = cc.conso; c.anomalie = cc.anomalie; c.litresRoules = cc.litresRoules;
+    c.consoFiable = !!(c.conso && !c.anomalie && c.conso >= CONSO_MIN && c.conso <= CONSO_MAX);
+    if (c.consoFiable && c.montant) c.coutKm = (c.montant / c.km) * 100;
+    c.coutKm = null;   /* renseigné plus bas, une fois la fiabilité connue */
+    c.moyenne = c.n ? c.litres / c.n : null;
+    var best = null;
+    Object.keys(c.chauffeurs).forEach(function(ch){ if (!best || c.chauffeurs[ch] > c.chauffeurs[best]) best = ch; });
+    c.chauffeurPrincipal = best || "—";
+    return c;
+  });
+  return arr.sort(function(a,b){ return b.litres - a.litres; });
+}
+
+function parCle(pleins, cle){
+  var map = {};
+  pleins.forEach(function(p){
+    var k = p[cle] || "—";
+    if (!map[k]) map[k] = { cle:k, litres:0, montant:0, n:0, camions:{} };
+    map[k].litres += p.litres;
+    map[k].montant += p.montant || 0;
+    map[k].n++;
+    map[k].camions[p.immat] = 1;
+  });
+  return Object.keys(map).map(function(k){
+    map[k].nbCamions = Object.keys(map[k].camions).length;
+    return map[k];
+  }).sort(function(a,b){ return b.litres - a.litres; });
+}
+
+function parMois(pleins, remplissages, nbMois){
+  var keys = [], now = new Date();
+  /* on part du 1er mois qui a des données : inutile d'afficher 3 colonnes vides */
+  var premier = null;
+  (pleins || []).forEach(function(p){ if (!premier || p.date < premier) premier = p.date; });
+  (remplissages || []).forEach(function(r){ if (!premier || r.date < premier) premier = r.date; });
+  var depuis = premier
+    ? Math.min(nbMois, (now.getFullYear() - premier.getFullYear()) * 12 + (now.getMonth() - premier.getMonth()) + 1)
+    : nbMois;
+  depuis = Math.max(1, depuis);
+  for (var i = depuis - 1; i >= 0; i--) {
+    var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    keys.push(moisKey(d));
+  }
+  var map = {};
+  keys.forEach(function(k){ map[k] = { key:k, label:moisLabel(k), station:0, cuve:0, montant:0, entrees:0, n:0 }; });
+  pleins.forEach(function(p){
+    var k = moisKey(p.date); if (!map[k]) return;
+    if (p.cuve) map[k].cuve += p.litres; else map[k].station += p.litres;
+    map[k].montant += p.montant || 0;
+    map[k].n++;
+  });
+  (remplissages || []).forEach(function(r){
+    var k = moisKey(r.date); if (!map[k]) return;
+    map[k].entrees += r.litres;
+  });
+  return keys.map(function(k){ var m = map[k]; m.litres = m.station + m.cuve; return m; });
+}
+
+function bilanCuve(){
+  var entrees = CFG.STOCK_INIT || 0, coutEntrees = 0, litresValorises = 0;
+  STATE.remplissages.forEach(function(r){
+    entrees += r.litres;
+    if (r.montant) { coutEntrees += r.montant; litresValorises += r.litres; }
+  });
+  var sorties = 0, nSorties = 0, premiereSortie = null, derniereSortie = null;
+  STATE.pleins.forEach(function(p){
+    if (!p.cuve) return;
+    sorties += p.litres; nSorties++;
+    if (!premiereSortie || p.date < premiereSortie) premiereSortie = p.date;
+    if (!derniereSortie || p.date > derniereSortie) derniereSortie = p.date;
+  });
+  var niveau = entrees - sorties;
+  var prixMoyen = litresValorises > 0 ? coutEntrees / litresValorises : null;
+  /* conso moyenne / jour sur les 60 derniers jours de sorties */
+  var b = bornes("90");
+  var recentes = STATE.pleins.filter(function(p){ return p.cuve && p.date >= b.deb; });
+  var lRecents = recentes.reduce(function(s,p){ return s + p.litres; }, 0);
+  var jours = Math.max(1, Math.min(90, premiereSortie ? joursEntre(premiereSortie, new Date()) : 90));
+  var parJour = lRecents > 0 ? lRecents / Math.min(90, jours) : null;
+  return {
+    entrees: entrees, livre: entrees - (CFG.STOCK_INIT || 0), stockInit: CFG.STOCK_INIT || 0,
+    sorties: sorties, niveau: niveau, nRemp: STATE.remplissages.length,
+    nSorties: nSorties, coutEntrees: coutEntrees, prixMoyen: prixMoyen,
+    parJour: parJour,
+    autonomie: (parJour && parJour > 0 && niveau > 0) ? Math.floor(niveau / parJour) : null,
+    premiereSortie: premiereSortie, derniereSortie: derniereSortie,
+    dernierRemp: STATE.remplissages.length ? STATE.remplissages[0] : null
+  };
+}
+
+/* ═══════════ GRAPHIQUES (SVG maison, zéro librairie) ═══════════ */
+function svgBarres(items, opts){
+  opts = opts || {};
+  var W = 340, H = 172, padB = 26, padT = 20;
+  var n = items.length; if (!n) return '<div class="empty">Pas encore de données</div>';
+  var max = 0;
+  items.forEach(function(it){ max = Math.max(max, (it.a || 0) + (it.b || 0)); });
+  if (max <= 0) max = 1;
+  var slot = W / n, bw = Math.min(38, slot * 0.62), plot = H - padB - padT;
+  var s = '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img">';
+  /* lignes de repère */
+  [0, 0.5, 1].forEach(function(f){
+    var y = padT + plot * (1 - f);
+    s += '<line x1="0" y1="' + y.toFixed(1) + '" x2="' + W + '" y2="' + y.toFixed(1) + '" stroke="#e3e6ea" stroke-width="1"/>';
+  });
+  items.forEach(function(it, i){
+    var x = i * slot + (slot - bw) / 2;
+    var a = it.a || 0, b = it.b || 0, tot = a + b;
+    var ha = plot * (a / max), hb = plot * (b / max);
+    var yb = padT + plot - hb, ya = yb - ha;
+    var dl = ' style="animation-delay:' + (i * 60) + 'ms"';
+    if (hb > 0) s += '<rect class="b"' + dl + ' x="' + x.toFixed(1) + '" y="' + yb.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + hb.toFixed(1) + '" fill="#1b1b1d" rx="3"/>';
+    if (ha > 0) s += '<rect class="b"' + dl + ' x="' + x.toFixed(1) + '" y="' + ya.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + ha.toFixed(1) + '" fill="#ff6e00" rx="3"/>';
+    if (tot > 0) s += '<text class="v"' + dl + ' x="' + (x + bw/2).toFixed(1) + '" y="' + (ya - 6).toFixed(1) + '" text-anchor="middle" font-size="10.5" font-weight="800" fill="#15161a">' + (opts.fmt ? opts.fmt(tot) : fmt(tot)) + '</text>';
+    s += '<text x="' + (x + bw/2).toFixed(1) + '" y="' + (H - 9) + '" text-anchor="middle" font-size="10" font-weight="600" fill="#6b7280">' + esc(it.label) + '</text>';
+  });
+  s += '</svg>';
+  return s;
+}
+
+function svgLignes(items){
+  /* entrées (remplissages) vs sorties (pompe entreprise) */
+  var W = 340, H = 172, padB = 26, padT = 20;
+  var n = items.length; if (!n) return '<div class="empty">Pas encore de données</div>';
+  var max = 0;
+  items.forEach(function(it){ max = Math.max(max, it.entrees || 0, it.cuve || 0); });
+  if (max <= 0) max = 1;
+  var slot = W / n, bw = Math.min(16, slot * 0.3), plot = H - padB - padT, gap = 3;
+  var s = '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img">';
+  [0, 0.5, 1].forEach(function(f){
+    var y = padT + plot * (1 - f);
+    s += '<line x1="0" y1="' + y.toFixed(1) + '" x2="' + W + '" y2="' + y.toFixed(1) + '" stroke="#e3e6ea" stroke-width="1"/>';
+  });
+  items.forEach(function(it, i){
+    var cx = i * slot + slot / 2;
+    var x1 = cx - bw - gap / 2, x2 = cx + gap / 2;
+    var h1 = plot * ((it.entrees || 0) / max), h2 = plot * ((it.cuve || 0) / max);
+    var dl2 = ' style="animation-delay:' + (i * 60) + 'ms"';
+    if (h1 > 0) s += '<rect class="b"' + dl2 + ' x="' + x1.toFixed(1) + '" y="' + (padT + plot - h1).toFixed(1) + '" width="' + bw + '" height="' + h1.toFixed(1) + '" fill="#16a34a" rx="3"/>';
+    if (h2 > 0) s += '<rect class="b"' + dl2 + ' x="' + x2.toFixed(1) + '" y="' + (padT + plot - h2).toFixed(1) + '" width="' + bw + '" height="' + h2.toFixed(1) + '" fill="#ff6e00" rx="3"/>';
+    s += '<text x="' + cx.toFixed(1) + '" y="' + (H - 9) + '" text-anchor="middle" font-size="10" font-weight="600" fill="#6b7280">' + esc(it.label) + '</text>';
+  });
+  s += '</svg>';
+  return s;
+}
+
+function barreRepartition(parts){
+  var tot = parts.reduce(function(s,p){ return s + p.v; }, 0);
+  if (tot <= 0) return '<div class="empty">Pas encore de données</div>';
+  var s = '<div style="display:flex;height:16px;border-radius:8px;overflow:hidden;background:#e3e6ea">';
+  parts.forEach(function(p){
+    var w = (p.v / tot) * 100;
+    if (w > 0) s += '<div style="width:' + w.toFixed(2) + '%;background:' + p.c + '"></div>';
+  });
+  s += '</div><div class="legend">';
+  parts.forEach(function(p){
+    s += '<span><i style="background:' + p.c + '"></i>' + esc(p.n) + ' — <b style="color:#15161a">' + fmt(p.v) + ' L</b> (' + fmt((p.v/tot)*100, 0) + '%)</span>';
+  });
+  return s + '</div>';
+}
+
+/* ═══════════ RENDU ═══════════ */
+function render(){
+  renderSync();
+  renderDash();
+  renderCuve();
+  renderCamions();
+  renderHisto();
+}
+
+function renderSync(){
+  var el = document.getElementById('sync');
+  if (STATE.erreur) { el.className = "sync err"; el.textContent = "⚠ " + STATE.erreur; return; }
+  el.className = "sync";
+  if (!CFG.DATA_URL) { el.innerHTML = "Mode local — <b>webhook de lecture non configuré</b>"; return; }
+  el.innerHTML = STATE.maj
+    ? "Données à jour au <b>" + pad(STATE.maj.getDate()) + "/" + pad(STATE.maj.getMonth()+1) + " " + pad(STATE.maj.getHours()) + "h" + pad(STATE.maj.getMinutes()) + "</b> — " + STATE.pleins.length + " pleins"
+    : "Chargement…";
+}
+
+function renderDash(){
+  var p = STATE.periode;
+  var pl = filtrer(STATE.pleins, p), t = totaux(pl);
+
+  /* période précédente, même durée, pour la variation */
+  var b = bornes(p), duree = b.fin - b.deb;
+  var precDeb = new Date(b.deb.getTime() - duree), precFin = new Date(b.deb.getTime() - 1);
+  var prec = STATE.pleins.filter(function(x){ return x.date >= precDeb && x.date <= precFin; });
+  var tp = totaux(prec);
+  function delta(cur, old){
+    if (p === "all" || !old || old <= 0) return '<div class="delta flat">&nbsp;</div>';
+    var v = ((cur - old) / old) * 100;
+    var cls = Math.abs(v) < 2 ? "flat" : (v > 0 ? "up" : "down");
+    var fl = v > 0 ? "▲" : (v < 0 ? "▼" : "=");
+    return '<div class="delta ' + cls + '">' + fl + ' ' + fmt(Math.abs(v), 0) + ' % vs période préc.</div>';
+  }
+
+  document.getElementById('kpis').innerHTML =
+    '<div class="kpi accent"><div class="lbl">Carburant consommé</div><div class="val">' + fmt(t.litres) + '<small>L</small></div>' + delta(t.litres, tp.litres) + '</div>' +
+    '<div class="kpi dark"><div class="lbl">Coût carburant</div><div class="val">' + fmt(t.montant) + '<small>€</small></div>' + delta(t.montant, tp.montant) + '</div>' +
+    '<div class="kpi"><div class="lbl">Prix moyen en station</div><div class="val">' + uval(t.prixMoyen ? fmt(t.prixMoyen, 3) : null, '€/L') + '</div><div class="sub">' + plur(t.nStation, 'plein') + ' en station</div></div>' +
+    '<div class="kpi"><div class="lbl">Nombre de pleins</div><div class="val">' + t.n + '</div><div class="sub">' + t.nCuve + ' à la cuve · ' + t.nStation + ' en station</div></div>';
+
+  var bc = bilanCuve();
+  document.getElementById('tankCard').innerHTML  = htmlTank(bc);
+  document.getElementById('tankCard2').innerHTML = htmlTank(bc);
+
+  /* consommation par mois */
+  var mm = parMois(STATE.pleins, STATE.remplissages, 6);
+  var items = mm.map(function(m){ return { label:m.label.split(" ")[0], a:m.station, b:m.cuve }; });
+  document.getElementById('chartMois').innerHTML =
+    '<div class="chart-head"><span class="chart-title">Litres consommés</span><span class="chart-note">' + plur(mm.length, 'mois', 'mois') + '</span></div>' +
+    svgBarres(items) +
+    '<div class="legend"><span><i style="background:#ff6e00"></i>Station externe</span><span><i style="background:#1b1b1d"></i>Pompe entreprise</span></div>';
+
+  /* top camions */
+  var cams = parCamion(pl);
+  document.getElementById('topCamions').innerHTML =
+    '<div class="chart-head"><span class="chart-title">Top 5 camions</span><span class="chart-note">' + libPeriode(p) + '</span></div>' +
+    htmlRank(cams.slice(0, 5), "litres");
+
+  /* répartition */
+  var carbs = parCle(pl, "carburant");
+  var COUL = { "Gazole":"#ff6e00", "GNR":"#1b1b1d", "AdBlue":"#2563eb", "SP95":"#16a34a", "SP95-E10":"#16a34a", "SP98":"#059669" };
+  var pal = ["#ff6e00","#1b1b1d","#2563eb","#16a34a","#a855f7","#f59e0b","#6b7280"];
+  document.getElementById('repartition').innerHTML =
+    '<div class="chart-head"><span class="chart-title">Station externe / pompe entreprise</span></div>' +
+    barreRepartition([{ n:"Station externe", v:t.litresStation, c:"#ff6e00" }, { n:"Pompe entreprise", v:t.litresCuve, c:"#1b1b1d" }]) +
+    '<div class="chart-head" style="margin-top:20px"><span class="chart-title">Par type de carburant</span></div>' +
+    barreRepartition(carbs.map(function(c, i){ return { n:c.cle, v:c.litres, c:COUL[c.cle] || pal[i % pal.length] }; }));
+
+  document.getElementById('alertes').innerHTML = htmlAlertes(pl, cams, bc);
+}
+
+function htmlTank(bc){
+  var cap = CFG.CAP_CUVE || 0;
+  var neg = bc.niveau < 0;
+  var pct = cap > 0 ? Math.max(0, Math.min(100, (bc.niveau / cap) * 100)) : null;
+  var cls = pct === null ? "" : (pct < 15 ? "low" : (pct < 35 ? "mid" : ""));
+  var vis = "";
+  if (cap > 0) {
+    vis = neg
+      ? '<div class="tank-vis vide"><div class="tank-pct">!</div></div>'
+      : '<div class="tank-vis"><div class="tank-fill ' + cls + '" style="height:' + pct.toFixed(1) + '%"></div><div class="tank-pct">' + fmt(pct, 0) + ' %</div></div>';
+  }
+  var alerte;
+  if (cap > 0 && bc.niveau > cap * 1.02) {
+    alerte = '<div class="tank-alert warn">Le reste calcul&eacute; (' + fmt(bc.niveau) + ' L) d&eacute;passe la capacit&eacute; d&eacute;clar&eacute;e (' + fmt(cap) + ' L). Corrige la capacit&eacute; dans R&eacute;glages, onglet Saisie.</div>';
+  } else if (bc.niveau < 0) {
+    alerte = '<div class="tank-alert err">Il est sorti ' + fmt(Math.abs(bc.niveau)) + ' L de plus qu\'il n\'est entré. Soit la cuve contenait déjà du carburant au départ (à saisir dans R&eacute;glages), soit un remplissage n\'a pas été enregistré.</div>';
+  } else if (bc.niveau <= CFG.SEUIL_CUVE) {
+    alerte = '<div class="tank-alert err">Niveau bas — il reste ' + fmt(bc.niveau) + ' L. Prévoir une livraison.</div>';
+  } else if (bc.autonomie !== null && bc.autonomie < 14) {
+    alerte = '<div class="tank-alert warn">Environ ' + bc.autonomie + ' jours d\'autonomie au rythme actuel.</div>';
+  } else {
+    alerte = '<div class="tank-alert ok">Niveau correct' + (bc.autonomie !== null ? ' — environ ' + bc.autonomie + ' jours d\'autonomie.' : '.') + '</div>';
+  }
+  return '<div class="tank">' + vis +
+    '<div class="tank-info"><div class="lbl">Reste en cuve (estimé)</div>' +
+    '<div class="big' + (neg ? ' neg' : '') + '">' + fmt(bc.niveau) + '<small>L</small></div>' +
+    '<div class="tank-lines">' +
+      'Entré : <b>' + fmt(bc.livre) + ' L</b> en ' + plur(bc.nRemp, 'remplissage') + '<br>' +
+      (bc.stockInit ? 'Stock de départ : <b>' + fmt(bc.stockInit) + ' L</b><br>' : '') +
+      'Sorti : <b>' + fmt(bc.sorties) + ' L</b> en ' + bc.nSorties + ' pleins<br>' +
+      'Rythme : <b>' + (bc.parJour ? fmt(bc.parJour, 0) + ' L/jour' : '—') + '</b>' +
+    '</div></div></div>' + alerte;
+}
+
+function htmlRank(cams, tri){
+  if (!cams.length) return '<div class="empty"><b>Aucun plein sur la période</b>Change de période pour voir plus loin.</div>';
+  var getV = {
+    litres  : function(c){ return c.litres; },
+    montant : function(c){ return c.montant; },
+    conso   : function(c){ return c.consoFiable ? c.conso : 0; },
+    km      : function(c){ return c.km || 0; },
+    pleins  : function(c){ return c.n; }
+  }[tri] || function(c){ return c.litres; };
+  var lib = {
+    litres  : function(c){ return fmt(c.litres) + ' <small>L</small>'; },
+    montant : function(c){ return fmt(c.montant) + ' <small>€</small>'; },
+    conso   : function(c){ return uval(c.consoFiable ? fmt(c.conso, 1) : null, 'L/100km'); },
+    km      : function(c){ return uval(c.km && c.consoFiable ? fmt(c.km) : null, 'km'); },
+    pleins  : function(c){ return c.n + ' <small>pleins</small>'; }
+  }[tri] || function(c){ return fmt(c.litres) + ' <small>L</small>'; };
+
+  var sorted = cams.slice().sort(function(a,b){ return getV(b) - getV(a); });
+  var max = getV(sorted[0]) || 1;
+  var s = '<ul class="rank">';
+  sorted.forEach(function(c, i){
+    var w = Math.max(2, (getV(c) / max) * 100);
+    s += '<li class="clickable" data-immat="' + esc(c.immat) + '" style="--d:' + (i * 55) + 'ms">' +
+      '<div class="r-top"><span class="r-pos">' + (i+1) + '</span>' +
+      '<span class="r-name">' + esc(c.immat) + (c.anomalie ? ' <span style="color:#dc2626;font-size:11px">⚠</span>' : '') + '</span>' +
+      '<span class="r-val">' + lib(c) + '</span></div>' +
+      '<div class="r-bar"><i style="width:' + w.toFixed(1) + '%;animation-delay:' + (i * 55) + 'ms"></i></div>' +
+      '<div class="r-sub"><span>' + plur(c.n, 'plein') + '</span>' +
+      (tri !== 'litres' ? '<span><b>' + fmt(c.litres) + '</b> L</span>' : '') +
+      (c.consoFiable && tri !== 'conso' ? '<span><b>' + fmt(c.conso,1) + '</b> L/100km</span>' : '') +
+      (c.km && c.consoFiable && tri !== 'km' ? '<span><b>' + fmt(c.km) + '</b> km</span>' : '') +
+      (c.km && !c.consoFiable ? '<span style="color:#dc2626">compteur à vérifier</span>' : '') +
+      '<span>' + esc(c.chauffeurPrincipal) + '</span></div></li>';
+  });
+  return s + '</ul>';
+}
+
+function htmlAlertes(pl, cams, bc){
+  var a = [];
+  if (bc.niveau < 0)
+    a.push({ n:"err", t:"<b>Il est sorti " + fmt(Math.abs(bc.niveau)) + " L de plus qu'il n'est entré en cuve.</b> Soit la cuve contenait déjà du carburant au 22/06 (à saisir dans Réglages, onglet Saisie), soit un remplissage n'a pas été enregistré." });
+  else if (bc.niveau <= CFG.SEUIL_CUVE)
+    a.push({ n:"err", t:"<b>Cuve bientôt vide : " + fmt(bc.niveau) + " L restants.</b> Commander une livraison." });
+
+  var avecConso = cams.filter(function(c){ return c.consoFiable; });
+  if (avecConso.length >= 2) {
+    var moy = avecConso.reduce(function(s,c){ return s + c.conso; }, 0) / avecConso.length;
+    avecConso.forEach(function(c){
+      if (c.conso > moy * 1.3)
+        a.push({ n:"warn", t:"<b>" + esc(c.immat) + "</b> consomme " + fmt(c.conso,1) + " L/100 km, soit " + fmt(((c.conso/moy)-1)*100, 0) + " % de plus que la moyenne de la flotte (" + fmt(moy,1) + " L/100 km)." });
+    });
+  }
+  cams.forEach(function(c){
+    if (c.anomalie) a.push({ n:"warn", t:"<b>" + esc(c.immat) + "</b> : un kilométrage saisi est inférieur au précédent. Erreur de saisie probable, la consommation est faussée." });
+  });
+
+  var susp = pl.filter(function(p){ return p.suspect; });
+  susp.forEach(function(p){
+    a.push({ n:"err", t:"<b>Montant aberrant le " + frDate(p.date) + " (" + esc(p.immat) + ")</b> : " +
+      fmt(p.montantBrut, 2) + " € pour " + fmt(p.litres, 2) + " L, soit " + fmt(p.montantBrut / p.litres, 2) +
+      " € le litre. Ligne écartée des totaux — à corriger dans le Google Sheet." });
+  });
+
+  var douteuses = {};
+  pl.forEach(function(p){ if (immatDouteuse(p.immat)) douteuses[p.immat] = (douteuses[p.immat] || 0) + 1; });
+  Object.keys(douteuses).forEach(function(k){
+    a.push({ n:"warn", t:"<b>Immatriculation « " + esc(k) + " »</b> (" + douteuses[k] + " pleins) ne ressemble pas à une plaque valide. C'est probablement une faute de saisie : à corriger dans le Google Sheet pour que le camion soit compté au bon endroit." });
+  });
+
+  var sansMontant = pl.filter(function(p){ return !p.cuve && !p.montantBrut; }).length;
+  if (sansMontant > 0)
+    a.push({ n:"info", t:"<b>" + plur(sansMontant, "plein") + " en station sans montant</b> : le coût réel est sous-estimé d'autant." });
+
+  var sansKm = pl.filter(function(p){ return !p.km; }).length;
+  if (sansKm > 0)
+    a.push({ n:"info", t:"<b>" + plur(sansKm, "plein") + " sans kilométrage</b> sur la période : ces pleins ne comptent pas dans le calcul des L/100 km." });
+
+  var stations = pl.filter(function(p){ return !p.cuve && p.prix; });
+  if (stations.length >= 3) {
+    var prixs = stations.map(function(p){ return p.prix; });
+    var mn = Math.min.apply(null, prixs), mx = Math.max.apply(null, prixs);
+    if (mx - mn > 0.15)
+      a.push({ n:"info", t:"Le prix en station varie de <b>" + fmt(mn,3) + " €</b> à <b>" + fmt(mx,3) + " €</b> le litre. Sur " + fmt(totaux(pl).litresStation) + " L, l'écart représente " + fmtE((mx-mn)*totaux(pl).litresStation, 0) + "." });
+  }
+
+  var now = new Date();
+  parCamion(STATE.pleins).forEach(function(c){
+    if (c.dernier && joursEntre(c.dernier, now) > 60)
+      a.push({ n:"info", t:"<b>" + esc(c.immat) + "</b> n'a plus fait de plein depuis le " + frDate(c.dernier) + " (" + joursEntre(c.dernier, now) + " jours)." });
+  });
+
+  if (!a.length) return '<div class="empty"><b>Rien à signaler</b>Aucune anomalie détectée sur la période.</div>';
+  var ordre = { err:0, warn:1, info:2 };
+  a.sort(function(x,y){ return ordre[x.n] - ordre[y.n]; });
+  return '<ul class="alerts">' + a.map(function(x){
+    return '<li><span class="a-dot ' + x.n + '"></span><span>' + x.t + '</span></li>';
+  }).join('') + '</ul>';
+}
+
+function renderCuve(){
+  var bc = bilanCuve();
+  document.getElementById('cuveKpis').innerHTML =
+    '<div class="kpi"><div class="lbl">Total livré</div><div class="val">' + fmt(bc.entrees) + '<small>L</small></div><div class="sub">' + bc.nRemp + ' remplissages</div></div>' +
+    '<div class="kpi"><div class="lbl">Total distribué</div><div class="val">' + fmt(bc.sorties) + '<small>L</small></div><div class="sub">' + bc.nSorties + ' pleins à la pompe</div></div>' +
+    '<div class="kpi"><div class="lbl">Prix moyen du GNR</div><div class="val">' + uval(bc.prixMoyen ? fmt(bc.prixMoyen, 3) : null, '€/L') + '</div><div class="sub">sur les montants saisis</div></div>' +
+    '<div class="kpi"><div class="lbl">Valeur en cuve</div><div class="val">' + uval(bc.prixMoyen ? fmt(bc.niveau * bc.prixMoyen) : null, '€') + '</div><div class="sub">au prix moyen d\'achat</div></div>';
+
+  var mm = parMois(STATE.pleins, STATE.remplissages, 6);
+  document.getElementById('chartCuve').innerHTML =
+    '<div class="chart-head"><span class="chart-title">Litres entrés / sortis</span><span class="chart-note">' + plur(mm.length, 'mois', 'mois') + '</span></div>' +
+    svgLignes(mm) +
+    '<div class="legend"><span><i style="background:#16a34a"></i>Livraisons (entrées)</span><span><i style="background:#ff6e00"></i>Pleins à la pompe (sorties)</span></div>';
+
+  var r = STATE.remplissages;
+  if (!r.length) {
+    document.getElementById('listRemp').innerHTML = '<div class="empty"><b>Aucun remplissage</b>Enregistre le premier ci-dessous.</div>';
+  } else {
+    document.getElementById('listRemp').innerHTML = '<ul class="hist">' + r.map(function(x){
+      return '<li><div class="h-ico remp">' + ICO.remp + '</div><div class="h-body">' +
+        '<div class="h-line1"><span class="h-name">' + frDate(x.date) + '</span><span class="h-val">' + fmt(x.litres) + ' L</span></div>' +
+        '<div class="h-line2">' +
+          (x.montant ? '<span><b>' + fmtE(x.montant) + '</b></span>' : '') +
+          (x.prix ? '<span>' + fmt(x.prix,3) + ' €/L</span>' : '') +
+          (x.fournisseur ? '<span>' + esc(x.fournisseur) + '</span>' : '') +
+          '<span>' + esc(x.carburant) + '</span>' +
+          (x.src === "init" ? '<span style="color:#b45309">report initial</span>' : '') +
+        '</div></div></li>';
+    }).join('') + '</ul>';
+  }
+}
+
+function renderCamions(){
+  var pl = filtrer(STATE.pleins, STATE.periodeCam);
+  var cams = parCamion(pl);
+  document.getElementById('camionsRank').innerHTML = htmlRank(cams, STATE.tri);
+
+  /* tableau détaillé */
+  var th = '<thead><tr><th>Camion</th><th class="num">Litres</th><th class="num">Coût</th><th class="num">Pleins</th><th class="num">Km</th><th class="num">L/100km</th><th class="num">€/100km</th><th class="num">Moy./plein</th><th>Chauffeur</th><th>Dernier plein</th></tr></thead>';
+  var tb = cams.length ? cams.map(function(c){
+    return '<tr data-immat="' + esc(c.immat) + '"><td class="strong">' + esc(c.immat) + (c.anomalie ? ' ⚠' : '') + '</td>' +
+      '<td class="num strong">' + fmt(c.litres) + '</td>' +
+      '<td class="num">' + fmt(c.montant) + '</td>' +
+      '<td class="num">' + c.n + '</td>' +
+      '<td class="num">' + (c.km ? (c.consoFiable ? fmt(c.km) : '<span style="color:#dc2626">' + fmt(c.km) + ' ⚠</span>') : '—') + '</td>' +
+      '<td class="num strong">' + (c.consoFiable ? fmt(c.conso,1) : (c.conso ? '<span style="color:#dc2626" title="kilométrage incohérent">' + fmt(c.conso,1) + ' ⚠</span>' : '—')) + '</td>' +
+      '<td class="num">' + (c.coutKm ? fmt(c.coutKm,2) : '—') + '</td>' +
+      '<td class="num">' + fmt(c.moyenne,0) + ' L</td>' +
+      '<td>' + esc(c.chauffeurPrincipal) + '</td>' +
+      '<td>' + frDate(c.dernier) + '</td></tr>';
+  }).join('') : '<tr><td colspan="10" style="text-align:center;color:#6b7280;padding:24px">Aucun plein sur la période</td></tr>';
+  /* ligne de total */
+  var t = totaux(pl);
+  var kmTot = cams.reduce(function(s,c){ return s + (c.km || 0); }, 0);
+  var fiables = cams.filter(function(c){ return c.consoFiable; });
+  var kmF = fiables.reduce(function(s,c){ return s + c.km; }, 0);
+  var consoFlotte = kmF > 0 ? (fiables.reduce(function(s,c){ return s + (c.litresRoules || 0); }, 0) / kmF) * 100 : null;
+  if (cams.length) {
+    tb += '<tr style="background:#f4f5f7"><td class="strong">TOTAL</td><td class="num strong">' + fmt(t.litres) + '</td>' +
+      '<td class="num strong">' + fmt(t.montant) + '</td><td class="num strong">' + t.n + '</td>' +
+      '<td class="num strong">' + fmt(kmTot) + '</td><td class="num strong">' + (consoFlotte ? fmt(consoFlotte,1) : '—') + '</td>' +
+      '<td class="num"></td><td class="num"></td><td></td><td></td></tr>';
+  }
+  document.getElementById('camionsTable').innerHTML = th + '<tbody>' + tb + '</tbody>';
+
+  /* chauffeurs */
+  var ch = parCle(pl, "chauffeur");
+  document.getElementById('chauffeursTable').innerHTML =
+    '<thead><tr><th>Chauffeur</th><th class="num">Litres</th><th class="num">Coût</th><th class="num">Pleins</th><th class="num">Camions</th><th class="num">Moy./plein</th></tr></thead><tbody>' +
+    (ch.length ? ch.map(function(c){
+      return '<tr><td class="strong">' + esc(c.cle) + '</td><td class="num strong">' + fmt(c.litres) + '</td><td class="num">' + fmt(c.montant) + '</td><td class="num">' + c.n + '</td><td class="num">' + c.nbCamions + '</td><td class="num">' + fmt(c.litres/c.n, 0) + ' L</td></tr>';
+    }).join('') : '<tr><td colspan="6" style="text-align:center;color:#6b7280;padding:24px">Aucun plein sur la période</td></tr>') + '</tbody>';
+
+  /* carburants */
+  var cb = parCle(pl, "carburant");
+  document.getElementById('carbTable').innerHTML =
+    '<thead><tr><th>Carburant</th><th class="num">Litres</th><th class="num">Coût</th><th class="num">Pleins</th><th class="num">Part</th></tr></thead><tbody>' +
+    (cb.length ? cb.map(function(c){
+      return '<tr><td class="strong">' + esc(c.cle) + '</td><td class="num strong">' + fmt(c.litres) + '</td><td class="num">' + fmt(c.montant) + '</td><td class="num">' + c.n + '</td><td class="num">' + fmt((c.litres/t.litres)*100, 0) + ' %</td></tr>';
+    }).join('') : '<tr><td colspan="5" style="text-align:center;color:#6b7280;padding:24px">Aucun plein sur la période</td></tr>') + '</tbody>';
+}
+
+function renderHisto(){
+  var derniers = STATE.pleins.slice(0, 25);
+  var remp = STATE.remplissages.slice(0, 5).map(function(r){ return { remp:true, date:r.date, x:r }; });
+  var all = derniers.map(function(p){ return { remp:false, date:p.date, x:p }; }).concat(remp)
+                    .sort(function(a,b){ return b.date - a.date; }).slice(0, 25);
+  if (!all.length) { document.getElementById('histo').innerHTML = '<div class="empty"><b>Aucun mouvement</b>Les pleins saisis dans l\'app des chauffeurs apparaîtront ici.</div>'; return; }
+  document.getElementById('histo').innerHTML = '<ul class="hist">' + all.map(function(it){
+    if (it.remp) {
+      var r = it.x;
+      return '<li><div class="h-ico remp">' + ICO.remp + '</div><div class="h-body"><div class="h-line1"><span class="h-name">Remplissage cuve</span><span class="h-val">+' + fmt(r.litres) + ' L</span></div>' +
+        '<div class="h-line2"><span>' + frDate(r.date) + '</span>' + (r.montant ? '<span><b>' + fmtE(r.montant) + '</b></span>' : '') + (r.fournisseur ? '<span>' + esc(r.fournisseur) + '</span>' : '') + '</div></div></li>';
+    }
+    var p = it.x;
+    return '<li><div class="h-ico ' + (p.cuve ? 'cuve' : 'station') + '">' + (p.cuve ? ICO.cuve : ICO.station) + '</div><div class="h-body">' +
+      '<div class="h-line1"><span class="h-name">' + esc(p.immat) + '</span><span class="h-val">' + fmt(p.litres, 1) + ' L</span></div>' +
+      '<div class="h-line2"><span>' + frDate(p.date) + '</span><span>' + esc(p.chauffeur) + '</span>' +
+      (p.montant ? '<span><b>' + fmtE(p.montant, 2) + '</b></span>' : '') +
+      (p.km ? '<span>' + fmt(p.km) + ' km</span>' : '') +
+      (p.carburant && p.carburant !== 'Gazole' ? '<span><b>' + esc(p.carburant) + '</b></span>' : '') +
+      '</div></div></li>';
+  }).join('') + '</ul>';
+}
+
+/* ═══════════ FICHE CAMION ═══════════ */
+function ouvrirCamion(immat){
+  var pleins = STATE.pleins.filter(function(p){ return p.immat === immat; });
+  if (!pleins.length) return;
+  var c = parCamion(pleins)[0];
+  var mm = parMois(pleins, [], 6).map(function(m){ return { label:m.label.split(" ")[0], a:m.station, b:m.cuve }; });
+
+  /* consommation plein à plein */
+  var avecKm = pleins.filter(function(p){ return p.km > 0; }).sort(function(a,b){ return a.date - b.date; });
+  var segs = [];
+  for (var i = 1; i < avecKm.length; i++) {
+    var d = avecKm[i].km - avecKm[i-1].km;
+    if (d > 0) segs.push({ date:avecKm[i].date, dist:d, litres:avecKm[i].litres, conso:(avecKm[i].litres/d)*100 });
+  }
+
+  document.getElementById('sheetContent').innerHTML =
+    '<div class="sheet-title">' + esc(immat) + '</div>' +
+    '<div class="sheet-sub">' + plur(c.n, 'plein') + ' · chauffeur principal ' + esc(c.chauffeurPrincipal) + '</div>' +
+    '<div class="kpis">' +
+      '<div class="kpi accent"><div class="lbl">Litres</div><div class="val">' + fmt(c.litres) + '<small>L</small></div></div>' +
+      '<div class="kpi dark"><div class="lbl">Coût</div><div class="val">' + fmt(c.montant) + '<small>€</small></div></div>' +
+      '<div class="kpi"><div class="lbl">Consommation</div><div class="val">' + uval(c.consoFiable ? fmt(c.conso,1) : null, 'L/100km') + '</div><div class="sub">' + (c.consoFiable ? fmt(c.km) + ' km parcourus' : (c.km ? 'kilométrage incohérent' : 'kilométrage insuffisant')) + '</div></div>' +
+      '<div class="kpi"><div class="lbl">Coût au km</div><div class="val">' + uval(c.coutKm ? fmt(c.coutKm/100, 2) : null, '€/km') + '</div><div class="sub">moyenne ' + fmt(c.moyenne,0) + ' L/plein</div></div>' +
+    '</div>' +
+    '<h2 class="sect">Litres par mois</h2><div class="card">' + svgBarres(mm) + '</div>' +
+    (segs.length ? '<h2 class="sect">Consommation plein à plein</h2><div class="card pad0"><div class="tbl-scroll"><table class="data"><thead><tr><th>Date</th><th class="num">Distance</th><th class="num">Litres</th><th class="num">L/100km</th></tr></thead><tbody>' +
+      segs.slice().reverse().map(function(s){
+        var faux = s.conso < CONSO_MIN || s.conso > CONSO_MAX;
+        return '<tr' + (faux ? ' style="color:#dc2626"' : '') + '><td>' + frDate(s.date) + '</td><td class="num">' + fmt(s.dist) + ' km</td><td class="num">' + fmt(s.litres,1) + '</td><td class="num strong">' + fmt(s.conso,1) + (faux ? ' ⚠' : '') + '</td></tr>';
+      }).join('') + '</tbody></table></div><div class="hint" style="padding:0 15px 14px">Les lignes en rouge viennent d\'un kilométrage mal saisi.</div></div>' : '') +
+    '<h2 class="sect">Tous les pleins</h2><div class="card"><ul class="hist">' +
+      pleins.map(function(p){
+        return '<li><div class="h-ico ' + (p.cuve ? 'cuve' : 'station') + '">' + (p.cuve ? ICO.cuve : ICO.station) + '</div><div class="h-body">' +
+          '<div class="h-line1"><span class="h-name">' + frDate(p.date) + '</span><span class="h-val">' + fmt(p.litres,1) + ' L</span></div>' +
+          '<div class="h-line2"><span>' + esc(p.chauffeur) + '</span>' + (p.km ? '<span>' + fmt(p.km) + ' km</span>' : '') +
+          (p.montant ? '<span><b>' + fmtE(p.montant,2) + '</b></span>' : '') + '<span>' + esc(p.type) + '</span></div></div></li>';
+      }).join('') + '</ul></div>';
+  document.getElementById('sheet').classList.add('show');
+}
+document.getElementById('sheet').addEventListener('click', function(e){
+  if (e.target.hasAttribute('data-close')) this.classList.remove('show');
+});
+document.addEventListener('click', function(e){
+  var li = e.target.closest('.rank li[data-immat], table.data tr[data-immat]');
+  if (li) ouvrirCamion(li.getAttribute('data-immat'));
+});
+
+/* ═══════════ CHARGEMENT DES DONNÉES ═══════════ */
+function lireCache(){
+  try {
+    var c = JSON.parse(localStorage.getItem(K_CACHE) || "null");
+    if (!c) return false;
+    STATE.pleins = normPleins(c.pleins);
+    STATE.remplissages = mergeRemplissages(normRemplissages(c.remplissages));
+    STATE.maj = c.maj ? new Date(c.maj) : null;
+    return true;
+  } catch (e) { return false; }
+}
+function ecrireCache(pleins, remplissages){
+  try { localStorage.setItem(K_CACHE, JSON.stringify({ pleins:pleins, remplissages:remplissages, maj:Date.now() })); } catch (e) {}
+}
+
+async function charger(silencieux){
+  var btn = document.getElementById('btnRefresh');
+  if (!CFG.DATA_URL) {          /* pas encore de webhook de lecture : on reste sur le cache local */
+    if (!STATE.remplissages.length) STATE.remplissages = mergeRemplissages([]);
+    STATE.erreur = null;
+    render();
+    return;
+  }
+  btn.classList.add('spin');
+  try {
+    var url = CFG.DATA_URL + (CFG.DATA_URL.indexOf('?') > -1 ? '&' : '?') +
+              'token=' + encodeURIComponent(CFG.APP_TOKEN) + '&t=' + Date.now();
+    var res = await fetch(url, { method:'GET', cache:'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var txt = await res.text();
+    var data;
+    try { data = JSON.parse(txt); }
+    catch (e) { throw new Error('Réponse illisible du serveur'); }
+    var pleins, remp;
+    if (data.valueRanges) {           /* réponse brute values:batchGet */
+      pleins = (data.valueRanges[0] || {}).values || [];
+      remp   = (data.valueRanges[1] || {}).values || [];
+    } else {
+      pleins = data.pleins || data.Pleins || data.values || [];
+      remp   = data.remplissages || data.Remplissages || [];
+    }
+    if (!pleins.length && !remp.length) throw new Error('Aucune donnée reçue');
+    STATE.pleins = normPleins(pleins);
+    STATE.remplissages = mergeRemplissages(normRemplissages(remp));
+    STATE.maj = new Date();
+    STATE.erreur = null;
+    ecrireCache(pleins, remp);
+  } catch (e) {
+    var ok = lireCache();
+    STATE.erreur = ok
+      ? "Hors ligne — données du " + (STATE.maj ? frDate(STATE.maj) : "dernier chargement")
+      : "Impossible de charger les données (" + e.message + ")";
+    if (!ok) { STATE.pleins = []; STATE.remplissages = mergeRemplissages([]); }
+  } finally {
+    btn.classList.remove('spin');
+    render();
+    if (!silencieux && !STATE.erreur) showToast('Données actualisées', 'ok');
+  }
+}
+document.getElementById('btnRefresh').addEventListener('click', function(){ charger(false); flushQueue(); });
+
+/* ═══════════ ENVOI / FILE D'ATTENTE ═══════════ */
+var toast = document.getElementById('toast');
+function showToast(msg, type){
+  toast.textContent = msg;
+  toast.className = 'toast show ' + (type || '');
+  setTimeout(function(){ toast.className = 'toast ' + (type || ''); }, 3500);
+}
+function getQueue(){ try { return JSON.parse(localStorage.getItem(K_QUEUE) || '[]'); } catch (e) { return []; } }
+function setQueue(q){ localStorage.setItem(K_QUEUE, JSON.stringify(q)); updateBadge(); }
+function updateBadge(){
+  var n = getQueue().length, el = document.getElementById('pending');
+  el.textContent = n ? '⏳ ' + plur(n, 'envoi') + ' en attente de réseau' : '';
+  el.classList.toggle('show', n > 0);
+}
+async function send(payload){
+  var res = await fetch(CFG.WEBHOOK_URL, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+}
+async function flushQueue(){
+  var q = getQueue(); if (!q.length) return;
+  var reste = [];
+  for (var i = 0; i < q.length; i++) { try { await send(q[i]); } catch (e) { reste.push(q[i]); } }
+  setQueue(reste);
+  if (q.length && !reste.length) showToast('✅ ' + plur(q.length, 'envoi') + ' synchronisé' + (q.length >= 2 ? 's' : ''), 'ok');
+}
+window.addEventListener('online', function(){ flushQueue(); charger(true); });
+
+function horodatage(){
+  var d = new Date();
+  return pad(d.getDate()) + '/' + pad(d.getMonth()+1) + '/' + d.getFullYear() + ' ' + pad(d.getHours()) + 'h' + pad(d.getMinutes());
+}
+
+/* ═══════════ PHOTOS ═══════════ */
+var photos = { ticket:null, avant:null, apres:null, bl:null };
+var photoResets = [];
+document.querySelectorAll('input[type="file"][data-photo]').forEach(function(input){
+  var key = input.dataset.photo;
+  var block = input.closest('.field');
+  var previewWrap = block.querySelector('.preview');
+  var previewImg = previewWrap.querySelector('img');
+  var camLabel = block.querySelector('.cam-label');
+  var clearBtn = previewWrap.querySelector('.clear');
+  var defaultLabel = camLabel.textContent;
+  function reset(){ photos[key] = null; input.value = ''; previewWrap.style.display = 'none'; camLabel.textContent = defaultLabel; }
+  photoResets.push(reset);
+  clearBtn.addEventListener('click', reset);
+  input.addEventListener('change', function(e){
+    var file = e.target.files[0]; if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var img = new Image();
+      img.onload = function(){
+        var scale = Math.min(1, 1600 / img.width);
+        var canvas = document.createElement('canvas');
+        canvas.width = img.width * scale; canvas.height = img.height * scale;
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        photos[key] = canvas.toDataURL('image/jpeg', 0.85);
+        previewImg.src = photos[key];
+        previewWrap.style.display = 'block';
+        camLabel.textContent = 'Changer la photo';
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+});
+function resetPhotos(){ photoResets.forEach(function(r){ r(); }); }
+
+/* ═══════════ COMBOBOX ═══════════ */
+function combobox(comboId, inputId, listId, options, upper){
+  var combo = document.getElementById(comboId), input = document.getElementById(inputId), listEl = document.getElementById(listId);
+  var open = false;
+  function render(){
+    var q = input.value.trim(); if (upper) q = q.toUpperCase();
+    var matches = options.filter(function(p){ return p.toUpperCase().indexOf(q.toUpperCase()) > -1; });
+    var custom = q && options.map(function(o){ return o.toUpperCase(); }).indexOf(q.toUpperCase()) === -1;
+    listEl.innerHTML = '';
+    if (custom) {
+      var li = document.createElement('li'); li.className = 'custom';
+      li.textContent = 'Utiliser « ' + q + ' »';
+      li.addEventListener('mousedown', function(e){ e.preventDefault(); choose(q); });
+      listEl.appendChild(li);
+    }
+    matches.forEach(function(p){
+      var li = document.createElement('li'); li.textContent = p;
+      li.addEventListener('mousedown', function(e){ e.preventDefault(); choose(p); });
+      listEl.appendChild(li);
+    });
+    if (!matches.length && !custom) {
+      var e2 = document.createElement('li'); e2.className = 'empty2'; e2.textContent = 'Aucun résultat'; listEl.appendChild(e2);
+    }
+  }
+  function setOpen(o){ open = o; listEl.classList.toggle('show', o); if (o) render(); }
+  function choose(v){ input.value = v; setOpen(false); }
+  input.addEventListener('focus', function(){ setOpen(true); });
+  input.addEventListener('input', function(){ if (open) render(); else setOpen(true); });
+  document.addEventListener('mousedown', function(e){ if (!combo.contains(e.target)) setOpen(false); });
+}
+combobox('immatCombo', 'immatInput', 'immatList', PLAQUES, true);
+combobox('fourCombo', 'fourInput', 'fourList', FOURNISSEURS, false);
+
+/* ═══════════ CALCUL AUTO PRIX / MONTANT ═══════════ */
+function autoCalc(f){
+  var l = num(f.litres.value), p = num(f.prix_litre.value), m = num(f.montant.value);
+  if (l > 0 && p > 0 && !m) f.montant.value = (l * p).toFixed(2).replace('.', ',');
+  else if (l > 0 && m > 0 && !p) f.prix_litre.value = (m / l).toFixed(3).replace('.', ',');
+}
+function brancherAutoCalc(f){
+  ['litres','prix_litre','montant'].forEach(function(k){
+    if (f[k]) f[k].addEventListener('blur', function(){ autoCalc(f); });
+  });
+}
+
+/* ═══════════ FORMULAIRE : REMPLISSAGE DE CUVE ═══════════ */
+var formRemp = document.getElementById('formRemp');
+formRemp.date.value = iso(new Date());
+brancherAutoCalc(formRemp);
+formRemp.addEventListener('submit', async function(e){
+  e.preventDefault();
+  var btn = document.getElementById('btnRemp');
+  var d = Object.fromEntries(new FormData(formRemp).entries());
+  ['litres','prix_litre','montant'].forEach(function(k){ if (d[k]) d[k] = d[k].replace(',', '.'); });
+  var payload = {
+    token       : CFG.APP_TOKEN,
+    type_pompe  : "Remplissage cuve",
+    date        : d.date,
+    envoye_le   : horodatage(),
+    fournisseur : d.fournisseur || "",
+    carburant   : d.carburant || "GNR",
+    litres      : d.litres,
+    prix_litre  : d.prix_litre || "",
+    montant     : d.montant,
+    note        : d.note || "",
+    chauffeur   : "Direction"
+  };
+  if (photos.bl) payload.photo = photos.bl.split(',')[1];
+
+  btn.disabled = true; btn.textContent = 'Envoi en cours…';
+  var localRow = { date:parseDate(d.date), litres:num(d.litres), prix:num(d.prix_litre),
+                   montant:num(d.montant), fournisseur:d.fournisseur || "", carburant:d.carburant || "GNR",
+                   note:d.note || "", src:"local" };
+  try {
+    await send(payload);
+    showToast('✅ Remplissage enregistré', 'ok');
+  } catch (err) {
+    var q = getQueue(); q.push(payload); setQueue(q);
+    showToast('📥 Hors-ligne : sera envoyé automatiquement', 'warn');
+  } finally {
+    STATE.remplissages = STATE.remplissages.concat([localRow]).sort(function(a,b){ return b.date - a.date; });
+    formRemp.reset();
+    formRemp.date.value = iso(new Date());
+    resetPhotos();
+    btn.disabled = false; btn.textContent = 'Enregistrer le remplissage';
+    render();
+    setTimeout(function(){ charger(true); }, 4000);
+  }
+});
+
+/* ═══════════ FORMULAIRE : PLEIN ═══════════ */
+var form = document.getElementById('form');
+var typePompe = document.getElementById('typePompe');
+form.date.value = iso(new Date());
+brancherAutoCalc(form);
+function setMode(mode){
+  var ent = mode === 'entreprise';
+  typePompe.value = ent ? 'Pompe entreprise' : 'Station externe';
+  document.getElementById('btnStation').classList.toggle('active', !ent);
+  document.getElementById('btnEntreprise').classList.toggle('active', ent);
+  document.querySelectorAll('#form .station-only').forEach(function(el){
+    el.style.display = ent ? 'none' : '';
+    el.querySelectorAll('input, select, textarea').forEach(function(i){ i.disabled = ent; });
+  });
+  document.querySelectorAll('#form .cuve-only').forEach(function(el){
+    el.style.display = ent ? 'block' : 'none';
+    el.querySelectorAll('input, select, textarea').forEach(function(i){ i.disabled = !ent; });
+  });
+}
+document.getElementById('btnStation').addEventListener('click', function(){ setMode('station'); });
+document.getElementById('btnEntreprise').addEventListener('click', function(){ setMode('entreprise'); });
+setMode('station');
+
+form.addEventListener('submit', async function(e){
+  e.preventDefault();
+  var isStation = typePompe.value === 'Station externe';
+  var data = Object.fromEntries(new FormData(form).entries());
+  data.immatriculation = (data.immatriculation || '').toUpperCase();
+  ['litres','prix_litre','montant'].forEach(function(k){ if (data[k]) data[k] = data[k].replace(',', '.'); });
+  if (photos.ticket) data.photo = photos.ticket.split(',')[1];
+  if (photos.avant)  data.photo_avant = photos.avant.split(',')[1];
+  if (photos.apres)  data.photo_apres = photos.apres.split(',')[1];
+  data.envoye_le = horodatage();
+  data.token = CFG.APP_TOKEN;
+
+  var btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'Envoi en cours…';
+  var mode = isStation ? 'station' : 'entreprise';
+  try {
+    await send(data);
+    showToast('✅ Plein enregistré', 'ok');
+  } catch (err) {
+    var q = getQueue(); q.push(data); setQueue(q);
+    showToast('📥 Hors-ligne : sera envoyé automatiquement', 'warn');
+  } finally {
+    form.reset();
+    form.date.value = iso(new Date());
+    resetPhotos(); setMode(mode);
+    btn.disabled = false; btn.textContent = 'Enregistrer le plein';
+    setTimeout(function(){ charger(true); }, 4000);
+  }
+});
+
+/* ═══════════ NAVIGATION ═══════════ */
+document.querySelectorAll('nav.tabbar button').forEach(function(b){
+  b.addEventListener('click', function(){
+    document.querySelectorAll('nav.tabbar button').forEach(function(x){ x.classList.remove('active'); });
+    b.classList.add('active');
+    document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+    document.getElementById('view-' + b.dataset.view).classList.add('active');
+    window.scrollTo(0, 0);
+  });
+});
+document.getElementById('periods').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  this.querySelectorAll('button').forEach(function(x){ x.classList.remove('active'); });
+  b.classList.add('active'); STATE.periode = b.dataset.p; renderDash();
+});
+document.getElementById('periods2').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  this.querySelectorAll('button').forEach(function(x){ x.classList.remove('active'); });
+  b.classList.add('active'); STATE.periodeCam = b.dataset.p; renderCamions();
+});
+document.getElementById('triCamions').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  this.querySelectorAll('button').forEach(function(x){ x.classList.remove('active'); });
+  b.classList.add('active'); STATE.tri = b.dataset.t; renderCamions();
+});
+
+/* ═══════════ RÉGLAGES ═══════════ */
+var capEl = document.getElementById('capCuve'), seuilEl = document.getElementById('seuilCuve'), stockEl = document.getElementById('stockInit');
+capEl.value = CFG.CAP_CUVE; seuilEl.value = CFG.SEUIL_CUVE; stockEl.value = CFG.STOCK_INIT || '';
+stockEl.addEventListener('change', function(){ CFG.STOCK_INIT = num(stockEl.value) || 0; saveSettings(); render(); });
+capEl.addEventListener('change', function(){ CFG.CAP_CUVE = num(capEl.value) || 0; saveSettings(); render(); });
+seuilEl.addEventListener('change', function(){ CFG.SEUIL_CUVE = num(seuilEl.value) || 0; saveSettings(); render(); });
+document.getElementById('btnPurge').addEventListener('click', function(){
+  localStorage.removeItem(K_CACHE); location.reload();
+});
+
+/* ═══════════ DÉMARRAGE ═══════════ */
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+if (!lireCache()) STATE.remplissages = mergeRemplissages([]);
+render();
+updateBadge();
+charger(true);
+flushQueue();
+</script>
+</body>
+</html>
