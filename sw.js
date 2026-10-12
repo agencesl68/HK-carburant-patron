@@ -1,6 +1,6 @@
 // Service worker — l'app s'ouvre même sans réseau (les données viennent du cache localStorage)
-const CACHE = "hk-patron-v12";
-const ASSETS = ["./", "./index.html", "./manifest.json", "./icon.png", "./logo.png"];
+const CACHE = "hk-patron-v14";
+const ASSETS = ["./", "./index.html", "./manifest.json", "./icon.png", "./logo.png", "./logo-full.png", "./logo-mark.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
